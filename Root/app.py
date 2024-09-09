@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
@@ -43,21 +43,33 @@ class Service(db.Model):
 
 class Service_Request(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
-    professional_id = db.Column(db.Integer, db.ForeignKey('service_professional.id'), nullable=False)
-    
+
+    service_id = db.Column(db.Integer, db.ForeignKey("service.id"), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"), nullable=False)
+    professional_id = db.Column(
+        db.Integer, db.ForeignKey("service_professional.id"), nullable=False
+    )
+
     date_of_request = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     date_of_completion = db.Column(db.DateTime)
-    service_status = db.Column(db.String, nullable=False)  # e.g., 'requested', 'assigned', 'closed'
+    service_status = db.Column(
+        db.String, nullable=False
+    )  # e.g., 'requested', 'assigned', 'closed'
     remarks = db.Column(db.String)
-    
-    service = db.relationship('Service', backref=db.backref('service_requests', lazy=True))
-    customer = db.relationship('Customer', backref=db.backref('service_requests', lazy=True))
-    professional = db.relationship('Service_Professional', backref=db.backref('service_requests', lazy=True))
+
+    service = db.relationship(
+        "Service", backref=db.backref("service_requests", lazy=True)
+    )
+    customer = db.relationship(
+        "Customer", backref=db.backref("service_requests", lazy=True)
+    )
+    professional = db.relationship(
+        "Service_Professional", backref=db.backref("service_requests", lazy=True)
+    )
+
 
 # Run the Flask app
 if __name__ == "__main__":
-    db.create_all()
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
