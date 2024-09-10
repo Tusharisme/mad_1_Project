@@ -1,23 +1,46 @@
-*{
-    margin: 0px;
+* {
+  margin: 0;
 }
 
-#container, #panel{
-    border: 2px solid black;
+#panel {
+  width: 80vw; /* Width now adjusts based on the viewport width */
+  margin: auto;
+  height: 80vh; /* Height adjusts based on the viewport height */
+  text-align: center; /* Centers the inner form */
+  padding: 2vh; /* Padding based on viewport height */
+  border: 1px solid #007bff;
+  border-radius: 10px;
 }
 
-#panel{
-    width: 80%;
-    margin: auto;
-    height: 800px;
+#input-form {
+  border: 1px solid blue;
+  width: 50vw; /* Adjust width to scale with the viewport */
+  height: 50vh; /* Adjust height to scale with the viewport */
+  margin: auto;
+  margin-top: 5vh; /* Margin-top in viewport units */
+  border-radius: 20px;
+  padding: 2vh; /* Padding adjusted to scale with the viewport */
 }
 
-#input-form{
-    border: 1px solid blue;
-    width: 600px;
-    height: 500px;
-    margin: auto;
-    margin-top: 50px;
-    border-radius: 20px;
-    padding:10px;
+#container {
+  width: 50vw; /* Adjusts based on the viewport width */
+  margin: auto;
+  padding: 2vh; /* Padding adjusts based on viewport height */
+  border: 1px solid #ccc;
+}
+
+.header-section {
+  margin-bottom: 2vh; /* Margin-bottom in viewport units */
+}
+
+.header-section h3 {
+  font-size: 2rem;
+  text-align: center; /* Centers the heading */
+  margin-bottom: 1vh; /* Margin-bottom in viewport units */
+}
+
+.header-section a {
+  margin-top: 1vh; /* Margin-top in viewport units */
+  display: inline-block;
+  text-align: center;
 }
