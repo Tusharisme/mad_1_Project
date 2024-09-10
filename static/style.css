@@ -1,46 +1,59 @@
 * {
   margin: 0;
+  background-color: #f5ecec;
 }
 
 #panel {
-  width: 80vw; /* Width now adjusts based on the viewport width */
+  width: auto;
+  /* Width now adjusts based on the viewport width */
   margin: auto;
-  height: 80vh; /* Height adjusts based on the viewport height */
-  text-align: center; /* Centers the inner form */
-  padding: 2vh; /* Padding based on viewport height */
-  border: 1px solid #007bff;
+  height: auto;
+  /* Height adjusts based on the viewport height */
+  text-align: center;
+  /* Centers the inner form */
+  padding: 2vh;
+  /* Padding based on viewport height */
+  border: 0px solid black;
   border-radius: 10px;
 }
 
 #input-form {
-  border: 1px solid blue;
-  width: 50vw; /* Adjust width to scale with the viewport */
-  height: 50vh; /* Adjust height to scale with the viewport */
+  border: 3px solid black;
+  width: 50vw;
+  /* Adjust width to scale with the viewport */
+  height: auto;
+  /* Adjust height to scale with the viewport */
   margin: auto;
-  margin-top: 5vh; /* Margin-top in viewport units */
+  margin-top: 5vh;
+  /* Margin-top in viewport units */
   border-radius: 20px;
-  padding: 2vh; /* Padding adjusted to scale with the viewport */
+  padding: 2vh;
+  /* Padding adjusted to scale with the viewport */
 }
 
 #container {
-  width: 50vw; /* Adjusts based on the viewport width */
+  width: auto;
+  /* Adjusts based on the viewport width */
   margin: auto;
-  padding: 2vh; /* Padding adjusts based on viewport height */
+  padding: 2vh;
+  /* Padding adjusts based on viewport height */
   border: 1px solid #ccc;
 }
 
 .header-section {
-  margin-bottom: 2vh; /* Margin-bottom in viewport units */
+  margin-bottom: auto;
+  /* Margin-bottom in viewport units 2vh*/
 }
 
 .header-section h3 {
   font-size: 2rem;
-  text-align: center; /* Centers the heading */
-  margin-bottom: 1vh; /* Margin-bottom in viewport units */
+  text-align: center;
+  /* Centers the heading */
+  margin-bottom: auto;
+  /* Margin-bottom in viewport units  1vh*/
 }
 
-.header-section a {
-  margin-top: 1vh; /* Margin-top in viewport units */
-  display: inline-block;
-  text-align: center;
+
+a {
+  color: orange;
 }
