@@ -18,7 +18,7 @@
         <div id="panel">
             <div id="input-form">
                 <h2>Customer Signup</h2>
-                <form action="/register" method="POST">
+                <form action="/signup" method="POST">
                     <div class="mb-3">
                         <label for="username" class="form-label"><b>User Name</b></label>
                         <input type="text" class="form-control" id="username" name="uname"
@@ -48,7 +48,12 @@
                     </div>
 
                     <button type="submit" class="btn btn-success">Register</button><br /><br />
-                    <a href="/templates/login.html" class="btn btn-link"><b>Login here</b></a>
+                    {% if msg %}
+                    <div class="alert alert-danger" role="alert">
+                        <b>{{msg}}</b>
+                    </div>
+                    {% endif %}
+                    <a href="/login" class="btn btn-link"><b>Login here</b></a>
                 </form>
             </div>
         </div>

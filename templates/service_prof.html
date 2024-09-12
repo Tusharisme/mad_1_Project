@@ -16,11 +16,11 @@
   <div id="container">
     <div class="header-section text-center">
       <h3>A to Z Household Services</h3>
-  </div>
+    </div>
     <div id="panel">
       <div id="input-form">
         <h2>Service Professional Signup</h2>
-        <form action="/register" method="POST">
+        <form action="/register" method="POST" enctype="multipart/form-data">
           <div class="mb-3">
             <label for="username" class="form-label"><b>User Name</b></label>
             <input type="text" class="form-control" id="username" name="uname" aria-describedby="userHelp" />
@@ -39,11 +39,11 @@
           </div>
           <div class="mb-3">
             <label for="expeience" class="form-label"><b>Experience(in years)</b></label>
-            <input type="text" class="form-control" name="expeience" id="expeience" aria-describedby="emailHelp" />
+            <input type="text" class="form-control" name="experience" id="expeience" aria-describedby="emailHelp" />
           </div>
           <div class="mb-3">
-            <label for="formFileSm" class="form-label"><b>Attach Documents(Single pdf)</b></label>
-            <input class="form-control form-control-sm" id="formFileSm" type="file" />
+            <label for="document" class="form-label"><b>Attach Documents(Single pdf)</b></label>
+            <input type="file" class="form-control form-control-sm" name="document" id="document" />
           </div>
           <div class="mb-3">
             <label for="address" class="form-label"><b>Address</b></label>
@@ -55,10 +55,17 @@
           </div>
 
           <button type="submit" class="btn btn-success">Register</button><br /><br />
-          <a href="/templates/login.html" class="btn btn-link"><b>Login here</b></a>
-        </form>
+          <!-- Only show this if there is a message  -->
+          {% if msg %}
+          <div class="alert alert-danger" role="alert">
+            <b>{{msg}}</b>
+          </div>
+          {% endif %}
       </div>
+      <a href="/login" class="btn btn-link"><b>Login here</b></a>
+      </form>
     </div>
+  </div>
   </div>
 </body>
 
