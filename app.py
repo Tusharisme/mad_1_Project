@@ -8,6 +8,7 @@ app = None  # initially None
 def init_app():
     service_app = Flask(__name__)  # Flask app initialization
     service_app.debug = True  # Enable debug mode
+    service_app.secret_key = "mynameistushar"
     service_app.config["SQLALCHEMY_DATABASE_URI"] = (
         "sqlite:///service.sqlite3"  # Database config
     )

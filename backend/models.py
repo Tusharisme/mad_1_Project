@@ -34,9 +34,10 @@ class Service_Professional(db.Model):
     name = db.Column(db.String, nullable=False)
     service_type = db.Column(db.String, nullable=True) #nullable true done for some reason
     experience = db.Column(db.Integer, nullable=False)
+    email = db.Column(db.String, unique=True, nullable=False)
     address = db.Column(db.String, nullable=False)
     pin_code = db.Column(db.String, nullable=False)
-    verified_status = db.Column(db.String, nullable=False)
+    verified_status = db.Column(db.String, nullable=True)
     document = db.Column(db.String, nullable=True)  # Column to store document path
 
 
@@ -45,7 +46,7 @@ class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
     price = db.Column(db.Integer, nullable=False)
-    time_required = db.Column(db.Integer, nullable=False)
+    time_required = db.Column(db.Integer, nullable=True)  # True for now
     description = db.Column(db.String, nullable=False)
 
 
@@ -75,10 +76,3 @@ class Service_Request(db.Model):
     professional = db.relationship(
         "Service_Professional", backref=db.backref("service_requests", lazy=True)
     )
-
-
-# # Run the Flask app
-# if __name__ == "__main__":
-#     with app.app_context():
-#         db.create_all()
-#     app.run(debug=True)
