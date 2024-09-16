@@ -4,12 +4,12 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
-
-# class Admin(db.Model):
-#     __tablename__ = "admin"
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     username = db.Column(db.String, unique=True, nullable=False)
-#     password = db.Column(db.String, nullable=False)
+# Junction table for the many-to-many relationship between professionals and services
+professional_service_association = db.Table(
+    "professional_service_association",
+    db.Column("professional_id", db.Integer, db.ForeignKey("service_professional.id")),
+    db.Column("service_id", db.Integer, db.ForeignKey("service.id")),
+)
 
 
 class Customer(db.Model):
@@ -32,13 +32,22 @@ class Service_Professional(db.Model):
     username = db.Column(db.String, unique=True, nullable=False)
     password = db.Column(db.String, nullable=False)
     name = db.Column(db.String, nullable=False)
-    service_type = db.Column(db.String, nullable=True) #nullable true done for some reason
+    service_type = db.Column(
+        db.String, nullable=False
+    )  # nullable true done for some reason
     experience = db.Column(db.Integer, nullable=False)
     email = db.Column(db.String, unique=True, nullable=False)
     address = db.Column(db.String, nullable=False)
     pin_code = db.Column(db.String, nullable=False)
     verified_status = db.Column(db.String, nullable=True)
     document = db.Column(db.String, nullable=True)  # Column to store document path
+
+    # Many-to-many relationship with services
+    services = db.relationship(
+        "Service",
+        secondary=professional_service_association,
+        backref=db.backref("professionals", lazy=True),
+    )
 
 
 class Service(db.Model):
@@ -53,7 +62,6 @@ class Service(db.Model):
 class Service_Request(db.Model):
     __tablename__ = "service_request"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-
     service_id = db.Column(db.Integer, db.ForeignKey("service.id"), nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"), nullable=False)
     professional_id = db.Column(
