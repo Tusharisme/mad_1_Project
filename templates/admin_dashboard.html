@@ -26,7 +26,8 @@
                                 <a class="nav-link active" aria-current="page" href="#">Summary</a>
                             </li>
                             <li>
-                                <a class="nav-link active" aria-current="page" href="/">Log Out</a>
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Log
+                                    Out</a>
                             </li>
 
 
@@ -38,6 +39,7 @@
                     </div>
                 </div>
             </nav>
+            <br>
             <!-- Details of Professional,Service and Service Request -->
             <h4>Services</h4>
             {% if services %}
@@ -68,8 +70,8 @@
             {% endif %}
             <br>
             <a href="{{url_for('service_register')}}"> <button type="button" class="btn btn-primary">+New
-                    Session</button></a>
-
+                    Services</button></a>
+            <br><br>
             <h4>Professionals</h4>
             {% if professionals %}
             <table class="table table-info table-hover">

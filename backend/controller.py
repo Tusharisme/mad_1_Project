@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 from flask import current_app as app  # Alias for current running app
 from flask import redirect, url_for, session
 from flask import current_app
+from flask import session, flash
 
 from backend.models import *
 import datetime
@@ -12,11 +13,26 @@ def home():
     return "Hellloooo"
 
 
+@app.route("/logout")
+def logout():
+    # Only clear the session if the admin is logged in
+    if "username" in session:
+        session.pop("username", None)  # Remove admin session
+        # flash("You have been logged out as Admin.", "success")
+
+    # For customers and professionals, no session clearing is needed, just redirect
+    # flash("You have been logged out.", "success")
+
+    # Redirect to login page for all users
+    return redirect(url_for("user_login"))
+
+
 @app.route("/login", methods=["GET", "POST"])
 def user_login():
     # Check if user is already logged in as admin
     if "username" in session:
         usr = Customer.query.filter_by(username=session["username"]).first()
+
         if usr and usr.role == 0:  # If admin is logged in
             services = fetch_all_services()
             professionals = fetch_all_professional()
@@ -38,8 +54,12 @@ def user_login():
         if usr and usr.role == 0:  # Admin login
             session["username"] = usr.username  # Store admin username in session
             services = fetch_all_services()  # Fetch services
+            updated_professional = fetch_all_professional()  # fetch professionals
             return render_template(
-                "admin_dashboard.html", admin=usr.username, services=services
+                "admin_dashboard.html",
+                admin=usr.username,
+                services=services,
+                professionals=updated_professional,
             )
         elif usr and usr.role != 0:  # Normal customer login
             return render_template("customer_dashboard.html", customer=usr.username)
@@ -183,14 +203,17 @@ def service_register():
 
         # Fetch updated service list
         updated_services = fetch_all_services()
-        updated_professional=fetch_all_professional()
+        updated_professional = fetch_all_professional()
 
         # Assuming the admin username is stored in the session after login
         admin_username = session.get("username")
 
         # Directly render admin_dashboard.html with updated services and admin details
         return render_template(
-            "admin_dashboard.html", admin=admin_username, services=updated_services,professionals=updated_professional
+            "admin_dashboard.html",
+            admin=admin_username,
+            services=updated_services,
+            professionals=updated_professional,
         )
 
     return render_template("service.html", msg="")
