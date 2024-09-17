@@ -26,10 +26,9 @@
                                 <a class="nav-link active" aria-current="page" href="#">Summary</a>
                             </li>
                             <li>
-                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Log Out</a>
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Log
+                                    Out</a>
                             </li>
-
-
                             <form class="d-flex">
                                 <input class="form-control me-2 " type="search" placeholder="Search"
                                     aria-label="Search" />
@@ -39,32 +38,37 @@
                 </div>
             </nav>
             <!-- table of today and closed service -->
-            <h4>Today Services</h4>
-            {% if services %}
+            <h4>Today’s Services</h4>
+            {% if requests %}
             <table class="table table-info table-hover">
                 <thead>
                     <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Customer name</th>
-                        <th scope="col">Contact Phone</th>
-                        <th scope="col">Location(with pin code)</th>
-                        <th scope="col">Action</th>
+                        <th>ID</th>
+                        <th>Customer Name</th>
+                        <th>Contact</th>
+                        <th>Location</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {%for key,value in services.items()%}
+                    {% for request in requests %}
                     <tr>
-                        <th scope="row">1</th>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
+                        <td>{{ request.id }}</td>
+                        <td>{{ request.customer.name }}</td>
+                        <td>{{ request.customer.phone }}</td>
+                        <td>{{ request.customer.address }}</td>
+                        <td>
+                            <a href="{{ url_for('complete_service', request_id=request.id) }}"
+                                class="btn btn-success">Complete</a>
+                        </td>
                     </tr>
-                    {%endfor%}
+                    {% endfor %}
                 </tbody>
             </table>
             {% else %}
-            <h3>No users available</h3>
+            <p>No requests for today.</p>
             {% endif %}
+
             <h4>Closed Services</h4>
             <table class="table table-info table-hover">
                 <thead>
@@ -88,61 +92,6 @@
                             <a href="#" type="button">Reject |</a>
                             <a href="#" type="button">Delete</a>
                         </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">2</th>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                        <td>@fat</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">3</th>
-                        <td colspan="2">Larry the Bird</td>
-                        <td>@twitter</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">4</th>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                        <td>@fat</td>
-                    </tr>
-                </tbody>
-            </table>
-            <h4>Service Request</h4>
-            <table class="table table-info table-hover">
-                <thead>
-                    <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Assigned Professional(if any)</th>
-                        <th scope="col">Requested Date</th>
-                        <th scope="col">Status</th>
-
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th scope="row">1</th>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
-
-                    </tr>
-                    <tr>
-                        <th scope="row">2</th>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                        <td>@fat</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">3</th>
-                        <td colspan="2">Larry the Bird</td>
-                        <td>@twitter</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">4</th>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                        <td>@fat</td>
                     </tr>
                 </tbody>
             </table>

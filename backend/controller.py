@@ -2,7 +2,9 @@ from flask import Flask, render_template, request
 from flask import current_app as app  # Alias for current running app
 from flask import redirect, url_for, session
 from flask import current_app
-from flask import session, flash
+from flask import session, jsonify
+import os
+from werkzeug.utils import secure_filename
 
 from backend.models import *
 import datetime
@@ -18,10 +20,6 @@ def logout():
     # Only clear the session if the admin is logged in
     if "username" in session:
         session.pop("username", None)  # Remove admin session
-        # flash("You have been logged out as Admin.", "success")
-
-    # For customers and professionals, no session clearing is needed, just redirect
-    # flash("You have been logged out.", "success")
 
     # Redirect to login page for all users
     return redirect(url_for("user_login"))
@@ -96,10 +94,6 @@ def user_signup():
             db.session.commit()
             return render_template("login.html")
     return render_template("signup.html")
-
-
-import os
-from werkzeug.utils import secure_filename
 
 
 # Function to save the uploaded document
@@ -185,46 +179,72 @@ def prof_register():
     return render_template("service_prof.html", available_services=available_services)
 
 
-@app.route("/service", methods=["GET", "POST"])
-def service_register():
-    if request.method == "POST":
-        name = request.form.get("service_name")
-        description = request.form.get("description")
-        price = request.form.get("base_price")
+@app.route("/services/add", methods=["GET", "POST"])
+def add_service():
+    service_name = request.form.get("service_name")
+    description = request.form.get("description")
+    base_price = request.form.get("base_price")
 
-        # Directly create and add the new service without checking for duplicates
-        new_service = Service(
-            name=name,
-            description=description,
-            price=price,
-        )
-        db.session.add(new_service)
+    new_service = Service(name=service_name, description=description, price=base_price)
+    db.session.add(new_service)
+    db.session.commit()
+    # Fetch updated service list
+    updated_services = fetch_all_services()
+    updated_professional = fetch_all_professional()
+
+    # Assuming the admin username is stored in the session after login
+    admin_username = session.get("username")
+
+    # Directly render admin_dashboard.html with updated services and admin details
+    return render_template(
+        "admin_dashboard.html",
+        admin=admin_username,
+        services=updated_services,
+        professionals=updated_professional,
+    )
+
+
+@app.route("/services/edit/<int:service_id>", methods=["POST"])
+def edit_service(service_id):
+    new_service_name = request.form.get("service_name")
+    new_description = request.form.get("description")
+    new_base_price = request.form.get("base_price")
+
+    # Fetch the service by id
+    service = Service.query.filter_by(id=service_id).first()
+
+    if service:
+        # Update the service details
+        service.name = new_service_name
+        service.description = new_description
+        service.price = new_base_price
         db.session.commit()
 
-        # Fetch updated service list
-        updated_services = fetch_all_services()
-        updated_professional = fetch_all_professional()
+    # Redirect to login page after successful edit
+    return redirect(url_for("user_login"))
 
-        # Assuming the admin username is stored in the session after login
-        admin_username = session.get("username")
 
-        # Directly render admin_dashboard.html with updated services and admin details
-        return render_template(
-            "admin_dashboard.html",
-            admin=admin_username,
-            services=updated_services,
-            professionals=updated_professional,
-        )
+@app.route("/services/delete/<int:service_id>", methods=["POST"])
+def delete_service(service_id):
+    service = Service.query.get(service_id)
 
-    return render_template("service.html", msg="")
+    if service:
+        db.session.delete(service)
+        db.session.commit()
+
+    # Redirect to login page after successful deletion
+    return redirect(url_for("user_login"))
 
 
 def fetch_all_services():
     services = Service.query.all()
     service_list = {}
     for service in services:
-        if service.id not in service_list.keys():
-            service_list[service.id] = [service.name, service.price]
+        service_list[service.id] = [
+            service.name,
+            service.price,
+            service.description,
+        ]  # Add description
     return service_list
 
 
@@ -244,12 +264,11 @@ def fetch_all_professional():
     professionals = Service_Professional.query.all()
     professional_list = {}
     for professional in professionals:
-        if professional.id not in professional_list.keys():
-            professional_list[professional.id] = [
-                professional.name,
-                professional.experience,
-                professional.service_type,
-            ]
+        professional_list[professional.id] = [
+            professional.name,
+            professional.experience,
+            professional.service_type,
+        ]
     return professional_list
 
 
@@ -263,3 +282,72 @@ def professional_details(professional_id):
     else:
         # If the service does not exist, return an error or redirect
         return "Service not found", 404
+
+
+@app.route("/professional/approve/<int:professional_id>", methods=["POST"])
+def approve_professional(professional_id):
+    professional = Service_Professional.query.get(professional_id)
+    if professional:
+        professional.verified_status = "approved"
+        db.session.commit()
+    return redirect(url_for("user_login", update_dashboard=True))
+
+
+@app.route("/professional/reject/<int:professional_id>", methods=["POST"])
+def reject_professional(professional_id):
+    professional = Service_Professional.query.get(professional_id)
+    if professional:
+        professional.verified_status = "rejected"
+        db.session.commit()
+    return redirect(url_for("user_login", update_dashboard=True))
+
+
+@app.route("/professional/delete/<int:professional_id>", methods=["POST"])
+def delete_professional(professional_id):
+    professional = Service_Professional.query.get(professional_id)
+    if professional:
+        db.session.delete(professional)
+        db.session.commit()
+    return redirect(url_for("user_login", update_dashboard=True))
+
+
+@app.route("/api/request_service", methods=["POST"])
+def request_service():
+    # Get data from the request
+    service_id = request.json["service_id"]
+    customer_id = request.json["customer_id"]
+
+    # Find professionals who offer this service
+    professionals = Service_Professional.query.filter_by(service_id=service_id).all()
+
+    if professionals:
+        # Select a professional (for example, the first one for simplicity)
+        professional = professionals[0]
+
+        # Create a new service request
+        new_request = Service_Request(
+            customer_id=customer_id,
+            professional_id=professional.id,
+            service_id=service_id,
+        )
+
+        # Save the request to the database
+        db.session.add(new_request)
+        db.session.commit()
+
+        return jsonify({"message": "Service request submitted successfully"}), 200
+    else:
+        return jsonify({"message": "No professionals available for this service"}), 404
+
+
+@app.route("/professional_dashboard", methods=["GET"])
+def professional_dashboard():
+    # Get professional details
+    professional_id = session["professional_id"]
+
+    # Fetch assigned service requests
+    requests = Service_Request.query.filter_by(
+        professional_id=professional_id, service_status="open"
+    ).all()
+
+    return render_template("professional_dashboard.html", requests=requests)

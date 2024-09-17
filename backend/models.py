@@ -42,7 +42,7 @@ class Service_Professional(db.Model):
     verified_status = db.Column(db.String, nullable=True)
     document = db.Column(db.String, nullable=True)  # Column to store document path
 
-    # Many-to-many relationship with services
+    # Many-to-many relationship with services   
     services = db.relationship(
         "Service",
         secondary=professional_service_association,
