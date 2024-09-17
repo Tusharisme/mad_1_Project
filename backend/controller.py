@@ -185,7 +185,9 @@ def add_service():
     description = request.form.get("description")
     base_price = request.form.get("base_price")
 
-    new_service = Service(name=service_name, description=description, price=base_price)
+    new_service = Service(
+        name=service_name, description=description, base_price=base_price
+    )
     db.session.add(new_service)
     db.session.commit()
     # Fetch updated service list
@@ -217,7 +219,7 @@ def edit_service(service_id):
         # Update the service details
         service.name = new_service_name
         service.description = new_description
-        service.price = new_base_price
+        service.base_price = new_base_price
         db.session.commit()
 
     # Redirect to login page after successful edit
@@ -242,7 +244,7 @@ def fetch_all_services():
     for service in services:
         service_list[service.id] = [
             service.name,
-            service.price,
+            service.base_price,
             service.description,
         ]  # Add description
     return service_list
