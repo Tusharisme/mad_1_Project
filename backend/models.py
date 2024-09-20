@@ -37,7 +37,10 @@ class Service_Professional(db.Model):
 
     # Relationship with ProfessionalService (custom services per professional)
     custom_services = db.relationship(
-        "ProfessionalService", backref="professional", lazy=True
+        "ProfessionalService",
+        back_populates="professional",
+        lazy=True,
+        cascade="all, delete",
     )
 
 
@@ -52,8 +55,11 @@ class Service(db.Model):
     description = db.Column(db.String, nullable=False)
 
     # Relationship with ProfessionalService (custom services per professional)
-    custom_services = db.relationship(
-        "ProfessionalService", backref="service", lazy=True
+    # custom_services = db.relationship(
+    #     "ProfessionalService", backref="service", lazy=True
+    # )
+    professional_services = db.relationship(
+        "ProfessionalService", back_populates="service"
     )
 
 
@@ -69,6 +75,12 @@ class ProfessionalService(db.Model):
 
     # Optional: Add any additional fields to track custom services
     additional_info = db.Column(db.String, nullable=True)
+
+    # Use back_populates instead of backref, to avoid conflicts
+    professional = db.relationship(
+        "Service_Professional", back_populates="custom_services"
+    )
+    service = db.relationship("Service", back_populates="professional_services")
 
 
 class Service_Request(db.Model):
@@ -180,3 +192,45 @@ class Service_Request(db.Model):
 #     professional = db.relationship(
 #         "Service_Professional", backref=db.backref("service_requests", lazy=True)
 #     )
+
+
+# class Service_Professional(db.Model):
+#     __tablename__ = "service_professional"
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     username = db.Column(db.String, unique=True, nullable=False)
+#     password = db.Column(db.String, nullable=False)
+#     name = db.Column(db.String, nullable=False)
+#     service_type = db.Column(
+#         db.String, nullable=False
+#     )  # nullable true done for some reason
+#     experience = db.Column(db.Integer, nullable=False)
+#     email = db.Column(db.String, unique=True, nullable=False)
+#     address = db.Column(db.String, nullable=False)
+#     pin_code = db.Column(db.String, nullable=False)
+#     verified_status = db.Column(db.String, nullable=True)
+#     document = db.Column(db.String, nullable=True)  # Column to store document path
+
+
+#     # Relationship with ProfessionalService (custom services per professional)
+#     custom_services = db.relationship(
+#         "ProfessionalService", backref="professional", lazy=True
+#     )
+
+
+# class ProfessionalService(db.Model):
+#     __tablename__ = "professional_service"
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     professional_id = db.Column(
+#         db.Integer, db.ForeignKey("service_professional.id"), nullable=False
+#     )
+#     service_id = db.Column(db.Integer, db.ForeignKey("service.id"), nullable=False)
+#     custom_price = db.Column(db.Float, nullable=True)
+#     custom_description = db.Column(db.String, nullable=True)
+
+
+#     # Optional: Add any additional fields to track custom services
+#     additional_info = db.Column(db.String, nullable=True)
+#     professional = db.relationship(
+#         "Service_Professional", back_populates="custom_services"
+#     )
+#     service = db.relationship("Service", back_populates="professional_services")

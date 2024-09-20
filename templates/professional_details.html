@@ -20,8 +20,19 @@
     <p><strong>Professional Name:</strong> {{ professional.name }} </p>
     <p><strong>Professional Experience:</strong> {{ professional.experience }} <b>years</b></p>
     <p><strong>Service Name:</strong> {{ professional.service_type }}</p>
+    <p><strong>verified Status</strong> {{ professional.verified_status }}</p>
     <!-- <p><strong>Action:</strong> {{ professional.time_required }} mins</p> -->
-
+    <!-- Document Section -->
+    <p><strong>Uploaded Document:</strong>
+        {% if professional.document %}
+        <!-- Assuming the document is stored in '/uploads/' folder and accessible via static files -->
+        <a href="{{ url_for('static', filename='uploads/' + professional.document) }}" target="_blank">
+            View Document
+        </a>
+        {% else %}
+        No document uploaded.
+        {% endif %}
+    </p>
     <!-- Add a link to go back to the admin dashboard through the login route -->
     <a href="{{ url_for('user_login') }}">Back to Dashboard</a>
 </body>

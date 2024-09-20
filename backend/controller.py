@@ -111,6 +111,8 @@ def save_document(file):
     return file_path  # Return the file path for storing in the database
 
 
+
+
 @app.route("/register", methods=["GET", "POST"])  # for the professional
 def prof_register():
     if request.method == "POST":
@@ -126,7 +128,7 @@ def prof_register():
         pin_code = request.form.get("pin_code")
         service_type = request.form.get(
             "service_type"
-        )  # Updated to capture service type directly
+        )  # Capturing service type directly
 
         # Check if the professional already exists by email
         usr = Service_Professional.query.filter_by(email=email).first()
@@ -155,13 +157,18 @@ def prof_register():
             # Fetch the selected service by name from the form
             service = Service.query.filter_by(name=service_type).first()
             if service:
-                new_usr.services.append(
-                    service
-                )  # Associate the service with the professional
+                # Create a new ProfessionalService entry to link the professional and the service
+                professional_service = ProfessionalService(
+                    professional=new_usr,
+                    service=service,
+                    custom_price=None,  # You can add custom price and other fields here if needed
+                    custom_description=None,
+                )
 
-            # Add the new professional to the database
-            db.session.add(new_usr)
-            db.session.commit()
+                # Add the new professional and their service association to the database
+                db.session.add(new_usr)
+                db.session.add(professional_service)
+                db.session.commit()
 
             # Redirect to login page after successful registration
             return render_template("login.html")
@@ -301,7 +308,7 @@ def reject_professional(professional_id):
     if professional:
         professional.verified_status = "rejected"
         db.session.commit()
-    return redirect(url_for("user_login", update_dashboard=True))
+    return redirect(url_for("user_login"))
 
 
 @app.route("/professional/delete/<int:professional_id>", methods=["POST"])
@@ -353,3 +360,89 @@ def professional_dashboard():
     ).all()
 
     return render_template("professional_dashboard.html", requests=requests)
+
+
+@app.route('/api/professional/<int:professional_id>', methods=['GET'])
+def get_professional_details(professional_id):
+    professional = Service_Professional.query.get(professional_id)
+    if not professional:
+        return jsonify({'error': 'Professional not found'}), 404
+
+    return jsonify({
+        'name': professional.name,
+        'experience': professional.experience,
+        'service_type': professional.service_type,
+        'address': professional.address,
+        'pin_code': professional.pin_code,
+        'verified_status': professional.verified_status
+    })
+
+
+
+
+# @app.route("/register", methods=["GET", "POST"])  # for the professional
+# def prof_register():
+#     if request.method == "POST":
+#         uname = request.form.get("uname")
+#         password = request.form.get("pwd")
+#         fullname = request.form.get("full_name")
+#         email = request.form.get("email")
+#         experience = request.form.get("experience")
+#         formFileSm = request.files.get(
+#             "document"
+#         )  # Correcting the formFileSm to document
+#         address = request.form.get("address")
+#         pin_code = request.form.get("pin_code")
+#         service_type = request.form.get(
+#             "service_type"
+#         )  # Updated to capture service type directly
+
+#         # Check if the professional already exists by email
+#         usr = Service_Professional.query.filter_by(email=email).first()
+
+#         if not usr:
+#             # If file is uploaded, save it to a specific folder (adjust paths as necessary)
+#             document_path = None
+#             if formFileSm:
+#                 document_path = save_document(
+#                     formFileSm
+#                 )  # Assuming save_document handles saving
+
+#             # Create a new service professional
+#             new_usr = Service_Professional(
+#                 username=uname,
+#                 password=password,
+#                 name=fullname,
+#                 email=email,
+#                 address=address,
+#                 experience=experience,
+#                 document=document_path,  # Saving the file path
+#                 pin_code=pin_code,
+#                 service_type=service_type,  # Saving the service type
+#             )
+
+#             # Fetch the selected service by name from the form
+#             service = Service.query.filter_by(name=service_type).first()
+#             if service:
+#                 new_usr.services.append(
+#                     service
+#                 )  # Associate the service with the professional
+
+#             # Add the new professional to the database
+#             db.session.add(new_usr)
+#             db.session.commit()
+
+#             # Redirect to login page after successful registration
+#             return render_template("login.html")
+
+#         else:
+#             # If the professional already exists, render their dashboard
+#             return render_template(
+#                 "professional_dashboard.html", professional=usr.username
+#             )
+
+#     # On GET request, render the service professional signup form
+#     available_services = (
+#         Service.query.all()
+#     )  # Fetch the available services to populate the form
+#     return render_template("service_prof.html", available_services=available_services)

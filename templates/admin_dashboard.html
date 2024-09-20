@@ -99,7 +99,7 @@
                                     aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
-                                <label for="service_name" class="form-label"><b> Service Name </b></label>
+                                <label for="service_name" class="form-label"><b>Service Name</b></label>
                                 <input type="text" class="form-control" name="service_name" id="service_name" />
                                 <label for="description" class="form-label"><b>Description</b></label>
                                 <input type="text" name="description" class="form-control" id="description" />
@@ -127,7 +127,7 @@
                                     aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
-                                <label for="edit_service_name" class="form-label"><b> Service Name </b></label>
+                                <label for="edit_service_name" class="form-label"><b>Service Name</b></label>
                                 <input type="text" class="form-control" name="service_name" id="edit_service_name" />
                                 <label for="edit_description" class="form-label"><b>Description</b></label>
                                 <input type="text" name="description" class="form-control" id="edit_description" />
@@ -190,25 +190,24 @@
                         <td>{{ value[1] }}</td>
                         <td>{{ value[2] }}</td>
                         <td>
-                            <!-- Action buttons -->
-                            <!-- Approve Button -->
-                            <form
-                                action="{{ url_for('approve_professional', professional_id=key) }}?update_dashboard=true"
-                                method="post" style="display:inline;">
-                                <button type="submit" class="btn btn-success">Approve</button>
-                            </form>
+                            <!-- Approve button -->
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                                data-bs-target="#approveRejectModal" data-id="{{ key }}" data-action="approve">
+                                Approve
+                            </button>
+
                             <b>||</b>
-                            <form
-                                action="{{ url_for('reject_professional', professional_id=key) }}?update_dashboard=true"
-                                method="post" style="display:inline;">
-                                <button type="submit" class="btn btn-danger">Reject</button>
-                            </form>
+                            <!-- Reject Button -->
+                            <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                                data-bs-target="#approveRejectModal" data-id="{{ key }}" data-action="reject">
+                                Reject
+                            </button>
+
                             <b>||</b>
-                            <!-- Delete Button -->
-                            <form
-                                action="{{ url_for('delete_professional', professional_id=key) }}?update_dashboard=true"
-                                method="post" style="display:inline;">
-                                <button type="submit" class="btn btn-warning">Delete</button>
+                            <!-- Delete form -->
+                            <form action="{{ url_for('delete_professional', professional_id=key) }}" method="POST"
+                                style="display:inline;">
+                                <button type="submit" class="btn btn-danger">Delete</button>
                             </form>
                         </td>
                     </tr>
@@ -220,40 +219,73 @@
             {% endif %}
             <br>
 
-            <!-- Service Requests Section  -->
-            <h4>Service Requests</h4>
-            <table class="table table-info table-hover">
-                <thead>
-                    <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Assigned Professional (if any)</th>
-                        <th scope="col">Requested Date</th>
-                        <th scope="col">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Placeholder data; replace with actual data -->
-                    <tr>
-                        <th scope="row">1</th>
-                        <td>Mark</td>
-                        <td>2023-10-10</td>
-                        <td>Pending</td>
-                    </tr>
-                </tbody>
-            </table>
+            <!-- Approve/Reject Professional Modal -->
+            <form id="approveRejectForm" action="" method="POST">
+                <div class="modal fade" id="approveRejectModal" tabindex="-1" aria-labelledby="approveRejectModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="approveRejectModalLabel">Professional Approval/Rejection
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p><b>Professional Name:</b> <span id="professional_name"></span></p>
+                                <p><b>Experience:</b> <span id="professional_experience"></span> years</p>
+                                <p><b>Service:</b> <span id="professional_service"></span></p>
+                                <p><b>Address:</b> <span id="professional_address"></span></p>
+                                <p><b>Pincode:</b> <span id="professional_pincode"></span></p>
+                                <p><b>Verified Status:</b> <span id="professional_vstatus"></span></p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary" id="action_button">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <script>
+                // Get modal element for approving/rejecting professionals
+                var approveRejectModal = document.getElementById('approveRejectModal');
+
+                // Add an event listener to trigger when the modal is shown
+                approveRejectModal.addEventListener('show.bs.modal', function (event) {
+                    // Button that triggered the modal
+                    var button = event.relatedTarget;
+
+                    // Extract professional ID from the data-id attribute
+                    var professionalId = button.getAttribute('data-id');
+                    var action = button.getAttribute('data-action');
+
+                    // Fetch professional details from the API
+                    fetch('/api/professional/' + professionalId)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Populate modal with the fetched data
+                            document.getElementById('professional_name').textContent = data.name;
+                            document.getElementById('professional_experience').textContent = data.experience;
+                            document.getElementById('professional_service').textContent = data.service_type;
+                            document.getElementById('professional_address').textContent = data.address;
+                            document.getElementById('professional_pincode').textContent = data.pin_code;
+                            document.getElementById('professional_vstatus').textContent = data.verified_status;
+
+                            // Set form action and button label
+                            var form = document.getElementById('approveRejectForm');
+                            form.action = '/professional/' + action + '/' + professionalId;
+                        })
+                        .catch(error => {
+                            console.error('Error fetching professional details:', error);
+                            // Optionally, handle the error and display a message
+                        });
+                });
+            </script>
+
+            </script>
         </div>
     </div>
-    </div>
-    </div>
-
-    <script>
-        // Check if the URL contains the update_dashboard query parameter
-        const params = new URLSearchParams(window.location.search);
-        if (params.has('update_dashboard')) {
-            // Reload the page to reflect changes
-            window.location.href = window.location.pathname;
-        }
-    </script>
 </body>
 
 </html>
