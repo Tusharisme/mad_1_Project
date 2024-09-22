@@ -14,6 +14,7 @@ class Customer(db.Model):
     email = db.Column(db.String, unique=True, nullable=False)
     address = db.Column(db.String, nullable=False)
     pin_code = db.Column(db.String, nullable=False)
+    phone_no = db.Column(db.Integer, nullable=False)
     role = db.Column(
         db.Integer, nullable=False, default=1
     )  # 0 for admin, 1 for customer
@@ -29,6 +30,7 @@ class Service_Professional(db.Model):
         db.String, nullable=False
     )  # nullable true done for some reason
     experience = db.Column(db.Integer, nullable=False)
+    phone_no = db.Column(db.Integer, nullable=False)
     email = db.Column(db.String, unique=True, nullable=False)
     address = db.Column(db.String, nullable=False)
     pin_code = db.Column(db.String, nullable=False)
@@ -40,7 +42,7 @@ class Service_Professional(db.Model):
         "ProfessionalService",
         back_populates="professional",
         lazy=True,
-        cascade="all, delete",
+        cascade="all, delete-orphan",
     )
 
 
@@ -98,15 +100,21 @@ class Service_Request(db.Model):
         db.String, nullable=False
     )  # e.g., 'requested', 'assigned', 'closed'
     remarks = db.Column(db.String)
+    rating = db.Column(db.Integer, nullable=True)  # Added this line for the rating
 
     service = db.relationship(
-        "Service", backref=db.backref("service_requests", lazy=True)
+        "Service",
+        backref=db.backref(
+            "service_requests",
+            lazy=True,
+        ),
     )
     customer = db.relationship(
         "Customer", backref=db.backref("service_requests", lazy=True)
     )
     professional = db.relationship(
-        "Service_Professional", backref=db.backref("service_requests", lazy=True)
+        "Service_Professional",
+        backref=db.backref("service_requests", lazy=True, cascade="all, delete-orphan"),
     )
 
 

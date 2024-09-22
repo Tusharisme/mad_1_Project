@@ -4,10 +4,12 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Customer DashBoard</title>
+    <title>Customer Dashboard</title>
     <link rel="stylesheet" href="/static/style.css" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"></script>
 </head>
 
 <body>
@@ -15,8 +17,7 @@
         <div id="panel">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <div class="container-fluid">
-                    <label for="">Welcome {{customer}}</label>
-
+                    <label>Welcome, {{ customer }}</label>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                             <li class="nav-item">
@@ -26,131 +27,146 @@
                                 <a class="nav-link active" aria-current="page" href="#">Summary</a>
                             </li>
                             <li>
-                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Log Out</a>
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Log
+                                    Out</a>
                             </li>
-
-
-                            <form class="d-flex">
-                                <input class="form-control me-2 " type="search" placeholder="Search"
-                                    aria-label="Search" />
-
-                            </form>
+                        </ul>
+                        <form class="d-flex" action="/search_service" method="POST">
+                            <input class="form-control me-2" name="service_name" type="search"
+                                placeholder="Search services" aria-label="Search" required />
+                            <button class="btn btn-outline-success" type="submit">Search</button>
+                        </form>
                     </div>
                 </div>
             </nav>
-            <!-- table of today and closed service -->
-            <h4>Today Services</h4>
-            <table class="table table-info table-hover">
+
+            <!-- Service Categories -->
+            <h4 class="mt-4">Service Categories</h4>
+            <div class="row">
+                {% for service in services %}
+                <div class="col-md-3 mb-3">
+                    <a href="{{ url_for('get_service_professionals', service_id=service.id) }}"
+                        class="btn btn-primary btn-block">
+                        {{ service.name }}
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Service History Table -->
+            <h4 class="mt-4">Service History</h4>
+            <table class="table">
                 <thead>
                     <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Customer name</th>
-                        <th scope="col">Contact Phone</th>
-                        <th scope="col">Location(with pin code)</th>
-                        <th scope="col">Action</th>
+                        <th>ID</th>
+                        <th>Service Name</th>
+                        <th>Professional Name</th>
+                        <th>Phone No.</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {% for request in service_requests %}
                     <tr>
-                        <th scope="row">1</th>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">2</th>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                        <td>@fat</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">3</th>
-                        <td colspan="2">Larry the Bird</td>
-                        <td>@twitter</td>
-                    </tr>
-                </tbody>
-            </table>
-            <h4>Closed Services</h4>
-            <table class="table table-info table-hover">
-                <thead>
-                    <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Customer name</th>
-                        <th scope="col">Contact Phone</th>
-                        <th scope="col">Location(with pin code)</th>
-                        <th scope="col">Date</th>
-                        <th scope="col">Rating</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th scope="row">1</th>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
-                        <td>
-                            <a href="#" type="button">Approve |</a>
-                            <a href="#" type="button">Reject |</a>
-                            <a href="#" type="button">Delete</a>
+                        <td>{{ request.id }}</td>
+                        <td>{{ request.service.name }}</td>
+                        <td>{{ request.professional.name }}</td>
+                        <td>{{ request.professional.phone_no }}</td>
+                        <td style="color: orangered;">
+                            {{ request.service_status }}
+                            {% if request.service_status == 'requested' %}
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#closeServiceModal" data-id="{{ request.id }}"
+                                data-service-name="{{ request.service.name }}"
+                                data-professional-name="{{ request.professional.name }}"
+                                data-professional-id="{{ request.professional.id }}"
+                                data-description="{{ request.service.description }}">
+                                Close It?
+                            </button>
+                            {% endif %}
                         </td>
                     </tr>
-                    <tr>
-                        <th scope="row">2</th>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                        <td>@fat</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">3</th>
-                        <td colspan="2">Larry the Bird</td>
-                        <td>@twitter</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">4</th>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                        <td>@fat</td>
-                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
-            <h4>Service Request</h4>
-            <table class="table table-info table-hover">
-                <thead>
-                    <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Assigned Professional(if any)</th>
-                        <th scope="col">Requested Date</th>
-                        <th scope="col">Status</th>
 
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th scope="row">1</th>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
+            <!-- Close Service Modal -->
+            <div class="modal fade" id="closeServiceModal" tabindex="-1" role="dialog"
+                aria-labelledby="closeServiceModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="closeServiceModalLabel">Close Service Request</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>Service Name:</strong> <span id="modalServiceName"></span></p>
+                            <p><strong>Description:</strong> <span id="modalDescription"></span></p>
+                            <p><strong>Professional Name:</strong> <span id="modalProfessionalName"></span></p>
+                            <p><strong>Professional ID:</strong> <span id="modalProfessionalId"></span></p>
+                            <div class="form-group">
+                                <label for="serviceRating">Service Rating:</label>
+                                <input type="number" class="form-control" id="serviceRating" min="1" max="5" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="serviceRemarks">Remarks:</label>
+                                <textarea class="form-control" id="serviceRemarks" rows="3" required></textarea>
+                            </div>
+                            <input type="hidden" id="requestId" value="">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" id="submitCloseService">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    </tr>
-                    <tr>
-                        <th scope="row">2</th>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                        <td>@fat</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">3</th>
-                        <td colspan="2">Larry the Bird</td>
-                        <td>@twitter</td>
-                    </tr>
-                    <tr>
-                        <th scope="row">4</th>
-                        <td>Jacob</td>
-                        <td>Thornton</td>
-                        <td>@fat</td>
-                    </tr>
-                </tbody>
-            </table>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    $('#closeServiceModal').on('show.bs.modal', function (event) {
+                        var button = $(event.relatedTarget);
+                        var requestId = button.data('id');
+                        var serviceName = button.data('service-name');
+                        var professionalName = button.data('professional-name');
+                        var professionalId = button.data('professional-id');
+                        var description = button.data('description');
+
+                        var modal = $(this);
+                        modal.find('#modalServiceName').text(serviceName);
+                        modal.find('#modalDescription').text(description);
+                        modal.find('#modalProfessionalName').text(professionalName);
+                        modal.find('#modalProfessionalId').text(professionalId);
+                        modal.find('#requestId').val(requestId);
+                    });
+
+                    document.getElementById('submitCloseService').addEventListener('click', function () {
+                        const rating = document.getElementById('serviceRating').value;
+                        const remarks = document.getElementById('serviceRemarks').value;
+                        const requestId = document.getElementById('requestId').value;
+
+                        fetch('/close_service', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                requestId: requestId,
+                                serviceRating: rating,
+                                serviceRemarks: remarks
+                            }),
+                        })
+                            .then(response => {
+                                if (response.redirected) {
+                                    window.location.href = response.url; // Redirect on success
+                                } else {
+                                    alert('Error closing service request.');
+                                }
+                            })
+                            .catch(error => console.error('Error:', error));
+                    });
+                });
+            </script>
         </div>
     </div>
 </body>

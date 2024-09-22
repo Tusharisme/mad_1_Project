@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Service Professionals</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h3>Professionals for {{ service.name }}</h3>
+        {% if professionals %}
+        <div class="row">
+            {% for professional in professionals %}
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ professional.name }}</h5>
+                        <p class="card-text">Experience: {{ professional.experience }} years</p>
+                        <p class="card-text">Email: {{ professional.email }}</p>
+                        <p class="card-text">Service: {{ professional.service_type }}</p>
+                        <p class="card-text">Address: {{ professional.address }}</p>
+                        <!-- Add more details as needed -->
+                        <form action="{{ url_for('book_service') }}" method="POST">
+                            <input type="hidden" name="service_id" value="{{ service.id }}">
+                            <input type="hidden" name="professional_id" value="{{ professional.id }}">
+                            <button type="submit">Book Service</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No professionals available for this service.</p>
+        {% endif %}
+
+        <a href="{{ url_for('customer_dashboard') }}" class="btn btn-primary mt-3">Back to Services</a>
+    </div>
+</body>
+
+</html>

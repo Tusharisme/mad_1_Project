@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, flash, render_template, request
 from flask import current_app as app  # Alias for current running app
 from flask import redirect, url_for, session
 from flask import current_app
@@ -7,7 +7,7 @@ import os
 from werkzeug.utils import secure_filename
 
 from backend.models import *
-import datetime
+from datetime import datetime
 
 
 @app.route("/")
@@ -17,9 +17,8 @@ def home():
 
 @app.route("/logout")
 def logout():
-    # Only clear the session if the admin is logged in
-    if "username" in session:
-        session.pop("username", None)  # Remove admin session
+    # Clear the session for all users (admin, customer, professional)
+    session.clear()  # This removes all session data
 
     # Redirect to login page for all users
     return redirect(url_for("user_login"))
@@ -51,8 +50,9 @@ def user_login():
 
         if usr and usr.role == 0:  # Admin login
             session["username"] = usr.username  # Store admin username in session
+            session["customer_id"] = usr.id  # Store customer ID in session
             services = fetch_all_services()  # Fetch services
-            updated_professional = fetch_all_professional()  # fetch professionals
+            updated_professional = fetch_all_professional()  # Fetch professionals
             return render_template(
                 "admin_dashboard.html",
                 admin=usr.username,
@@ -60,8 +60,14 @@ def user_login():
                 professionals=updated_professional,
             )
         elif usr and usr.role != 0:  # Normal customer login
-            return render_template("customer_dashboard.html", customer=usr.username)
+            session["username"] = usr.username  # Store customer username in session
+            session["customer_id"] = usr.id  # Store customer ID in session
+            return redirect(url_for("customer_dashboard"))
         elif not usr and usr1:  # Service professional login
+            session["username"] = (
+                usr1.username
+            )  # Store professional username in session
+            session["professional_id"] = usr1.id  # Store professional ID in session
             return render_template(
                 "professional_dashboard.html", professional=usr1.username
             )
@@ -80,6 +86,7 @@ def user_signup():
         email = request.form.get("email")
         address = request.form.get("address")
         pin_code = request.form.get("pin_code")
+        phone_no = request.form.get("phone_no")
         usr = Customer.query.filter_by(email=email, password=password).first()
         if not usr:
             new_usr = Customer(
@@ -89,6 +96,7 @@ def user_signup():
                 email=email,
                 address=address,
                 pin_code=pin_code,
+                phone_no=phone_no,
             )
             db.session.add(new_usr)
             db.session.commit()
@@ -111,8 +119,6 @@ def save_document(file):
     return file_path  # Return the file path for storing in the database
 
 
-
-
 @app.route("/register", methods=["GET", "POST"])  # for the professional
 def prof_register():
     if request.method == "POST":
@@ -120,6 +126,7 @@ def prof_register():
         password = request.form.get("pwd")
         fullname = request.form.get("full_name")
         email = request.form.get("email")
+        phone_no = request.form.get("phone_no")
         experience = request.form.get("experience")
         formFileSm = request.files.get(
             "document"
@@ -151,6 +158,7 @@ def prof_register():
                 experience=experience,
                 document=document_path,  # Saving the file path
                 pin_code=pin_code,
+                phone_no=phone_no,
                 service_type=service_type,  # Saving the service type
             )
 
@@ -311,12 +319,25 @@ def reject_professional(professional_id):
     return redirect(url_for("user_login"))
 
 
+# @app.route("/professional/delete/<int:professional_id>", methods=["POST"])
+# def delete_professional(professional_id):
+#     professional = Service_Professional.query.get(professional_id)
+#     if professional:
+#         db.session.delete(professional)
+#         db.session.commit()
+#     return redirect(url_for("user_login", update_dashboard=True))
 @app.route("/professional/delete/<int:professional_id>", methods=["POST"])
 def delete_professional(professional_id):
     professional = Service_Professional.query.get(professional_id)
     if professional:
-        db.session.delete(professional)
+        db.session.delete(
+            professional
+        )  # This will also delete all related service requests
         db.session.commit()
+        flash("Professional and related service requests deleted successfully!")
+    else:
+        flash("Professional not found.")
+
     return redirect(url_for("user_login", update_dashboard=True))
 
 
@@ -362,87 +383,183 @@ def professional_dashboard():
     return render_template("professional_dashboard.html", requests=requests)
 
 
-@app.route('/api/professional/<int:professional_id>', methods=['GET'])
+@app.route("/api/professional/<int:professional_id>", methods=["GET"])
 def get_professional_details(professional_id):
     professional = Service_Professional.query.get(professional_id)
     if not professional:
-        return jsonify({'error': 'Professional not found'}), 404
+        return jsonify({"error": "Professional not found"}), 404
 
-    return jsonify({
-        'name': professional.name,
-        'experience': professional.experience,
-        'service_type': professional.service_type,
-        'address': professional.address,
-        'pin_code': professional.pin_code,
-        'verified_status': professional.verified_status
-    })
+    return jsonify(
+        {
+            "name": professional.name,
+            "experience": professional.experience,
+            "service_type": professional.service_type,
+            "address": professional.address,
+            "pin_code": professional.pin_code,
+            "verified_status": professional.verified_status,
+        }
+    )
 
 
+# @app.route("/customer_dashboard", methods=["GET"])
+# def customer_dashboard():
+#     usr = Customer.query.filter_by(username=session.get("username")).first()
+#     if usr:
+#         # Fetch customer profile, service history, and other relevant data
+#         service_history = Service_Request.query.filter_by(customer_id=usr.id).all()
+#         profile_data = {
+#             "name": usr.name,
+#             "email": usr.email,
+#             "address": usr.address,
+#             "pin_code": usr.pin_code,
+#         }
+
+#         return render_template(
+#             "customer_dashboard.html",
+#             customer=usr.username,
+#             profile=profile_data,
+#             service_history=service_history,
+#             # Add other data needed for the customer dashboard
+#         )
+#     else:
+#         return redirect(url_for("user_login"))  # Redirect to login if not authenticated
 
 
-# @app.route("/register", methods=["GET", "POST"])  # for the professional
-# def prof_register():
-#     if request.method == "POST":
-#         uname = request.form.get("uname")
-#         password = request.form.get("pwd")
-#         fullname = request.form.get("full_name")
-#         email = request.form.get("email")
-#         experience = request.form.get("experience")
-#         formFileSm = request.files.get(
-#             "document"
-#         )  # Correcting the formFileSm to document
-#         address = request.form.get("address")
-#         pin_code = request.form.get("pin_code")
-#         service_type = request.form.get(
-#             "service_type"
-#         )  # Updated to capture service type directly
+@app.route("/customer_dashboard")
+def customer_dashboard():
+    # Assuming the logged-in customer's ID is stored in the session
+    customer_id = session.get("customer_id")
 
-#         # Check if the professional already exists by email
-#         usr = Service_Professional.query.filter_by(email=email).first()
+    if not customer_id:
+        return redirect(url_for("user_login"))
 
-#         if not usr:
-#             # If file is uploaded, save it to a specific folder (adjust paths as necessary)
-#             document_path = None
-#             if formFileSm:
-#                 document_path = save_document(
-#                     formFileSm
-#                 )  # Assuming save_document handles saving
+    # Fetch all available services (for the service categories section)
+    services = Service.query.all()
 
-#             # Create a new service professional
-#             new_usr = Service_Professional(
-#                 username=uname,
-#                 password=password,
-#                 name=fullname,
-#                 email=email,
-#                 address=address,
-#                 experience=experience,
-#                 document=document_path,  # Saving the file path
-#                 pin_code=pin_code,
-#                 service_type=service_type,  # Saving the service type
-#             )
+    # Fetch all service requests for the logged-in customer (for the service history section)
+    service_requests = Service_Request.query.filter_by(customer_id=customer_id).all()
 
-#             # Fetch the selected service by name from the form
-#             service = Service.query.filter_by(name=service_type).first()
-#             if service:
-#                 new_usr.services.append(
-#                     service
-#                 )  # Associate the service with the professional
+    # Render the customer dashboard template with both services and service requests
+    return render_template(
+        "customer_dashboard.html",
+        services=services,
+        service_requests=service_requests,
+        customer=session.get(
+            "customer_name"
+        ),  # Assuming customer_name is stored in session
+    )
 
-#             # Add the new professional to the database
-#             db.session.add(new_usr)
-#             db.session.commit()
 
-#             # Redirect to login page after successful registration
-#             return render_template("login.html")
+# Route to display all available services
+# @app.route("/services", methods=["GET"])
+# def list_services():
+#     services = Service.query.all()  # Fetch all services from the database
+#     return render_template("services_list.html", services=services)
 
-#         else:
-#             # If the professional already exists, render their dashboard
-#             return render_template(
-#                 "professional_dashboard.html", professional=usr.username
-#             )
 
-#     # On GET request, render the service professional signup form
-#     available_services = (
-#         Service.query.all()
-#     )  # Fetch the available services to populate the form
-#     return render_template("service_prof.html", available_services=available_services)
+# Route to display professionals associated with a service
+# @app.route("/services/<int:service_id>", methods=["GET"])
+# def get_service_professionals(service_id):
+#     service = Service.query.get_or_404(service_id)
+#     professionals = (
+#         Service_Professional.query.join(ProfessionalService)
+#         .filter_by(service_id=service_id)
+#         .all()
+#     )
+#     return render_template(
+#         "service_professionals.html", service=service, professionals=professionals
+#     )
+@app.route("/services/<int:service_id>", methods=["GET"])
+def get_service_professionals(service_id):
+    service = Service.query.get_or_404(service_id)
+    professionals = (
+        Service_Professional.query.join(ProfessionalService)
+        .filter(ProfessionalService.service_id == service_id)
+        .all()
+    )
+    return render_template(
+        "service_professionals.html", service=service, professionals=professionals
+    )
+
+
+@app.route("/book_service", methods=["POST"])
+def book_service():
+    service_id = request.form.get("service_id")
+    professional_id = request.form.get("professional_id")
+    customer_id = session.get("customer_id")
+
+    print("Service ID:", service_id)
+    print("Professional ID:", professional_id)
+    print("Customer ID:", customer_id)
+
+    if service_id and professional_id and customer_id:
+        new_request = Service_Request(
+            service_id=service_id,
+            customer_id=customer_id,
+            professional_id=professional_id,
+            date_of_request=datetime.utcnow(),
+            service_status="requested",
+        )
+        db.session.add(new_request)
+        db.session.commit()
+        flash("Service booked successfully!")
+        return redirect(url_for("customer_dashboard"))
+    else:
+        flash("Failed to book service. Try again.")
+        return redirect(url_for("customer_dashboard"))
+
+
+# @app.route("/customer/service_history")
+# def customer_service_history():
+#     # Assuming the logged-in customer's ID is stored in the session
+#     customer_id = session.get("customer_id")
+
+#     if not customer_id:
+#         return redirect(url_for("user_login"))
+
+#     # Fetch all service requests for the logged-in customer
+#     service_requests = Service_Request.query.filter_by(customer_id=customer_id).all()
+
+#     # Render the service history template with the fetched data
+#     return render_template("service_history.html", service_requests=service_requests)
+
+
+# @app.route("/search_service", methods=["POST"])
+# def search_service():
+#     search_term = request.form.get("service_name")
+
+#     # Perform a case-insensitive search for the service
+#     services = Service.query.filter(Service.name.ilike(f"%{search_term}%")).all()
+
+#     # If no services match the search term, return an empty list
+#     if not services:
+#         return render_template(
+#             "services_by_category.html",
+#             services=[],
+#             category=f"Search Results for: {search_term}",
+#         )
+
+#     # Render search results
+#     return render_template(
+#         "services_by_category.html",
+#         services=services,
+#         category=f"Search Results for: {search_term}",
+#     )
+
+
+@app.route("/close_service", methods=["POST"])
+def close_service():
+    data = request.get_json()  # or use form data
+    request_id = data.get("requestId")
+    rating = data.get("serviceRating")
+    remarks = data.get("serviceRemarks")
+
+    service_request = Service_Request.query.get(request_id)
+    if service_request:
+        service_request.rating = rating  # Ensure your model has this field
+        service_request.remarks = remarks
+        service_request.service_status = "closed"  # Update status if needed
+        service_request.date_of_completion = datetime.utcnow()  # Set completion date
+        db.session.commit()  # Commit the changes
+
+    return redirect(url_for("customer_dashboard"))  # Redirect to the dashboard

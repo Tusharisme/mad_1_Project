@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service History</title>
+</head>
+
+<body>
+    <h1>Service History</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Professional</th>
+                <th>Status</th>
+                <th>Date of Request</th>
+                <th>Date of Completion</th>
+                <th>Remarks</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for request in service_requests %}
+            <tr>
+                <td>{{ request.service.name }}</td>
+                <td>{{ request.professional.name }}</td>
+                <td>{{ request.service_status }}</td>
+                <td>{{ request.date_of_request.strftime('%Y-%m-%d') }}</td>
+                <td>{{ request.date_of_completion.strftime('%Y-%m-%d') if request.date_of_completion else 'Pending' }}
+                </td>
+                <td>{{ request.remarks if request.remarks else 'No Remarks' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">No service history available</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+
+</html>
