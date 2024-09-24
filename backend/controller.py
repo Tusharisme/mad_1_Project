@@ -68,9 +68,7 @@ def user_login():
                 usr1.username
             )  # Store professional username in session
             session["professional_id"] = usr1.id  # Store professional ID in session
-            return render_template(
-                "professional_dashboard.html", professional=usr1.username
-            )
+            return redirect(url_for("professional_dashboard"))
         else:
             return render_template("login.html", msg="Invalid Credentials")
 
@@ -370,17 +368,17 @@ def request_service():
         return jsonify({"message": "No professionals available for this service"}), 404
 
 
-@app.route("/professional_dashboard", methods=["GET"])
-def professional_dashboard():
-    # Get professional details
-    professional_id = session["professional_id"]
+# @app.route("/professional_dashboard", methods=["GET"])
+# def professional_dashboard():
+#     # Get professional details
+#     professional_id = session["professional_id"]
 
-    # Fetch assigned service requests
-    requests = Service_Request.query.filter_by(
-        professional_id=professional_id, service_status="open"
-    ).all()
+#     # Fetch assigned service requests
+#     requests = Service_Request.query.filter_by(
+#         professional_id=professional_id, service_status="open"
+#     ).all()
 
-    return render_template("professional_dashboard.html", requests=requests)
+#     return render_template("professional_dashboard.html", requests=requests)
 
 
 @app.route("/api/professional/<int:professional_id>", methods=["GET"])
@@ -444,9 +442,7 @@ def customer_dashboard():
         "customer_dashboard.html",
         services=services,
         service_requests=service_requests,
-        customer=session.get(
-            "customer_name"
-        ),  # Assuming customer_name is stored in session
+        customer=session.get("username"),  # Assuming customer_name is stored in session
     )
 
 
@@ -524,27 +520,27 @@ def book_service():
 #     return render_template("service_history.html", service_requests=service_requests)
 
 
-# @app.route("/search_service", methods=["POST"])
-# def search_service():
-#     search_term = request.form.get("service_name")
+@app.route("/search_service", methods=["POST"])
+def search_service():
+    search_term = request.form.get("service_name")
 
-#     # Perform a case-insensitive search for the service
-#     services = Service.query.filter(Service.name.ilike(f"%{search_term}%")).all()
+    # Perform a case-insensitive search for the service
+    services = Service.query.filter(Service.name.ilike(f"%{search_term}%")).all()
 
-#     # If no services match the search term, return an empty list
-#     if not services:
-#         return render_template(
-#             "services_by_category.html",
-#             services=[],
-#             category=f"Search Results for: {search_term}",
-#         )
+    # If no services match the search term, return an empty list
+    if not services:
+        return render_template(
+            "services_by_category.html",
+            services=[],
+            category=f"Search Results for: {search_term}",
+        )
 
-#     # Render search results
-#     return render_template(
-#         "services_by_category.html",
-#         services=services,
-#         category=f"Search Results for: {search_term}",
-#     )
+    # Render search results
+    return render_template(
+        "services_by_category.html",
+        services=services,
+        category=f"Search Results for: {search_term}",
+    )
 
 
 @app.route("/close_service", methods=["POST"])
@@ -563,3 +559,110 @@ def close_service():
         db.session.commit()  # Commit the changes
 
     return redirect(url_for("customer_dashboard"))  # Redirect to the dashboard
+
+
+from sqlalchemy.orm import joinedload
+
+
+@app.route("/professional_dashboard")
+def professional_dashboard():
+    if "professional_id" in session:  # Check if professional is logged in
+        professional_id = session["professional_id"]
+
+        # Fetching service requests specific to the logged-in professional and eager load professional relationship
+        service_requests = (
+            Service_Request.query.options(
+                joinedload(
+                    Service_Request.professional
+                )  # Eager load the professional relationship
+            )
+            .filter_by(professional_id=professional_id)
+            .all()
+        )
+
+        # Fetch today's and closed services
+        today_services = [
+            req for req in service_requests if req.service_status == "requested"
+        ]
+        closed_services = [
+            req for req in service_requests if req.service_status == "closed"
+        ]
+
+        return render_template(
+            "professional_dashboard.html",
+            today_services=today_services,
+            closed_services=closed_services,
+            professional=session.get("username"),
+        )
+
+
+# @app.route("/professional_dashboard")
+# def professional_dashboard():
+#     if "professional_id" in session:  # Check if professional is logged in
+#         professional_id = session["professional_id"]
+
+#         # Fetching all service requests for this professional
+#         service_requests = Service_Request.query.filter_by(
+#             professional_id=professional_id, service_status="Pending"
+#         ).all()
+
+#         # Fetching closed service requests for this professional
+#         closed_services = Service_Request.query.filter_by(
+#             professional_id=professional_id, service_status="Completed"
+#         ).all()
+
+#         # Fetch the professional's details if needed
+#         professional = Service_Professional.query.filter_by(id=professional_id).first()
+
+#         return render_template(
+#             "professional_dashboard.html",
+#             service_requests=service_requests,
+#             closed_services=closed_services,  # Pass closed services to the template
+#             professional=professional,
+#         )
+#     else:
+#         return redirect(url_for("user_login"))  # Redirect to login if not logged in
+
+
+# # Route to mark a service as completed
+# @app.route("/complete_service/<int:service_id>")
+# def complete_service(service_id):
+#     service_request = Service_Request.query.get(service_id)
+#     service_request.service_status = "Completed"
+#     service_request.date_of_completion = datetime.utcnow()
+#     db.session.commit()
+#     return redirect(url_for("professional_dashboard"))
+
+
+# # Route to reject a service
+# @app.route("/reject_service/<int:service_id>")
+# def reject_service(service_id):
+#     service_request = Service_Request.query.get(service_id)
+#     service_request.service_status = "Rejected"
+#     db.session.commit()
+#     return redirect(url_for("professional_dashboard"))
+
+
+@app.route("/complete_service/<int:request_id>", methods=["POST"])
+def complete_service(request_id):
+    service_request = Service_Request.query.get(request_id)
+    professional_id = session["professional_id"]
+
+    if service_request and service_request.professional_id == professional_id:
+        service_request.service_status = "accepted"
+        service_request.date_of_completion = datetime.utcnow()
+        db.session.commit()
+        return redirect(url_for("professional_dashboard"))
+
+
+@app.route("/reject_service/<int:request_id>", methods=["POST"])
+def reject_service(request_id):
+    service_request = Service_Request.query.get(request_id)
+    professional_id = session["professional_id"]
+
+    if service_request and service_request.professional_id == professional_id:
+        # db.session.delete(service_request)
+        service_request.service_status = "rejected"
+        service_request.date_of_completion = datetime.utcnow()
+        db.session.commit()
+        return redirect(url_for("professional_dashboard"))

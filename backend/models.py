@@ -100,7 +100,7 @@ class Service_Request(db.Model):
         db.String, nullable=False
     )  # e.g., 'requested', 'assigned', 'closed'
     remarks = db.Column(db.String)
-    rating = db.Column(db.Integer, nullable=True)  # Added this line for the rating
+    rating = db.Column(db.Integer, nullable=False)  # Added this line for the rating
 
     service = db.relationship(
         "Service",

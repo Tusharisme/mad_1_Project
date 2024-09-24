@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Professional DashBoard</title>
+    <title>Professional Dashboard</title>
     <link rel="stylesheet" href="/static/style.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
@@ -15,86 +15,99 @@
         <div id="panel">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <div class="container-fluid">
-                    <label for="">Welcome {{professional}}</label>
+                    <label>Welcome {{ professional }}</label>
 
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                             <li class="nav-item">
                                 <a class="nav-link active" aria-current="page" href="#">Home</a>
                             </li>
-                            <li>
+                            <li class="nav-item">
                                 <a class="nav-link active" aria-current="page" href="#">Summary</a>
                             </li>
-                            <li>
-                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Log
-                                    Out</a>
+                            <li class="nav-item"></li>
+                                <a class="nav-link active" aria-current="page" href="#">Profile</a>
                             </li>
-                            <form class="d-flex">
-                                <input class="form-control me-2 " type="search" placeholder="Search"
-                                    aria-label="Search" />
-
-                            </form>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Logout</a>
+                            </li>
+                        </ul>
+                        <form class="d-flex" action="{{ url_for('search_service') }}" method="GET">
+                            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search"
+                                name="query" />
+                            <button class="btn btn-outline-success" type="submit">Search</button>
+                        </form>
                     </div>
                 </div>
             </nav>
-            <!-- table of today and closed service -->
-            <h4>Today’s Services</h4>
-            {% if requests %}
+
+            <!-- Today's Services Section -->
+            <h2>Today's Services</h2>
+            {% if today_services %}
             <table class="table table-info table-hover">
                 <thead>
                     <tr>
                         <th>ID</th>
                         <th>Customer Name</th>
-                        <th>Contact</th>
-                        <th>Location</th>
+                        <th>Contact Phone</th>
+                        <th>Location (with pin code)</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for request in requests %}
+                    {% for request in today_services %}
                     <tr>
                         <td>{{ request.id }}</td>
                         <td>{{ request.customer.name }}</td>
-                        <td>{{ request.customer.phone }}</td>
+                        <td>{{ request.customer.phone_no }}</td>
                         <td>{{ request.customer.address }}</td>
                         <td>
-                            <a href="{{ url_for('complete_service', request_id=request.id) }}"
-                                class="btn btn-success">Complete</a>
+                            <form action="{{ url_for('complete_service', request_id=request.id) }}" method="POST">
+                                <button type="submit">Accept</button>
+                            </form>
+
+                            <form action="{{ url_for('reject_service', request_id=request.id) }}" method="POST">
+                                <button type="submit">Rejected</button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
             {% else %}
-            <p>No requests for today.</p>
+            <p>No services for today.</p>
             {% endif %}
 
+            <!-- Closed Services Section -->
             <h4>Closed Services</h4>
+            {% if closed_services %}
             <table class="table table-info table-hover">
                 <thead>
                     <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Customer name</th>
-                        <th scope="col">Contact Phone</th>
-                        <th scope="col">Location(with pin code)</th>
-                        <th scope="col">Date</th>
-                        <th scope="col">Rating</th>
+                        <th>ID</th>
+                        <th>Customer Name</th>
+                        <th>Contact</th>
+                        <th>Location (with pin code)</th>
+                        <th>Date</th>
+                        <th>Rating</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {% for closed_service in closed_services %}
                     <tr>
-                        <th scope="row">1</th>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
-                        <td>
-                            <a href="#" type="button">Approve |</a>
-                            <a href="#" type="button">Reject |</a>
-                            <a href="#" type="button">Delete</a>
-                        </td>
+                        <td>{{ closed_service.id }}</td>
+                        <td>{{ closed_service.customer.name }}</td>
+                        <td>{{ closed_service.customer.phone_no }}</td>
+                        <td>{{ closed_service.customer.address }}</td>
+                        <td>{{ closed_service.date_of_completion.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ closed_service.rating }}</td>
                     </tr>
+                    {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <p>No closed services yet.</p>
+            {% endif %}
         </div>
     </div>
 </body>

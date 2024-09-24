@@ -17,23 +17,26 @@
         <div id="panel">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <div class="container-fluid">
-                    <label>Welcome, {{ customer }}</label>
+                    <label>Welcome {{ customer }}</label>
+
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                             <li class="nav-item">
                                 <a class="nav-link active" aria-current="page" href="#">Home</a>
                             </li>
-                            <li>
+                            <li class="nav-item">
                                 <a class="nav-link active" aria-current="page" href="#">Summary</a>
                             </li>
-                            <li>
-                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Log
-                                    Out</a>
+                            <li class="nav-item"></li>
+                                <a class="nav-link active" aria-current="page" href="#">Profile</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Logout</a>
                             </li>
                         </ul>
-                        <form class="d-flex" action="/search_service" method="POST">
-                            <input class="form-control me-2" name="service_name" type="search"
-                                placeholder="Search services" aria-label="Search" required />
+                        <form class="d-flex" action="{{ url_for('search_service') }}" method="GET">
+                            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search"
+                                name="query" />
                             <button class="btn btn-outline-success" type="submit">Search</button>
                         </form>
                     </div>
@@ -74,7 +77,7 @@
                         <td>{{ request.professional.phone_no }}</td>
                         <td style="color: orangered;">
                             {{ request.service_status }}
-                            {% if request.service_status == 'requested' %}
+                            {% if request.service_status == 'requested' or request.service_status == 'accepted'%}
                             <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                 data-bs-target="#closeServiceModal" data-id="{{ request.id }}"
                                 data-service-name="{{ request.service.name }}"
