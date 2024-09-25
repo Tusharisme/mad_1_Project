@@ -28,10 +28,11 @@
                             <li class="nav-item">
                                 <a class="nav-link active" aria-current="page" href="#">Home</a>
                             </li>
-                            <li>
-                                <a class="nav-link active" aria-current="page" href="#">Summary</a>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('admin_summary') }}">Summary</a>
                             </li>
-                            <li>
+                            <li class="nav-item">
                                 <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Log
                                     Out</a>
                             </li>
@@ -282,8 +283,37 @@
                         });
                 });
             </script>
+            <!-- Service Requests Section -->
+            <h4>Service Requests</h4>
+            {% if service_requests %}
+            <table class="table table-info table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Request ID</th>
+                        <th scope="col">Customer ID</th>
+                        <th scope="col">Service ID</th>
+                        <th scope="col">Professional ID</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Date of Request</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in service_requests %}
+                    <tr>
+                        <td>{{ request.id }}</td>
+                        <td>{{ request.customer_id }}</td>
+                        <td>{{ request.service_id }}</td>
+                        <td>{{ request.professional_id }}</td>
+                        <td>{{ request.service_status }}</td>
+                        <td>{{ request.date_of_request }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <h3>No service requests available</h3>
+            {% endif %}
 
-            </script>
         </div>
     </div>
 </body>

@@ -26,55 +26,202 @@ def logout():
     return redirect(url_for("user_login"))
 
 
+# @app.route("/login", methods=["GET", "POST"])
+# def user_login():
+#     # Check if user is already logged in as admin
+#     if "username" in session:
+#         usr = Customer.query.filter_by(username=session["username"]).first()
+
+#         if usr and usr.role == 0:  # If admin is logged in
+#             services = fetch_all_services()
+#             professionals = fetch_all_professional()
+#             return render_template(
+#                 "admin_dashboard.html",
+#                 admin=usr.username,
+#                 services=services,
+#                 professionals=professionals,
+#             )
+
+#     if request.method == "POST":
+#         email = request.form.get("email")
+#         password = request.form.get("pwd")
+#         usr = Customer.query.filter_by(email=email, password=password).first()
+#         usr1 = Service_Professional.query.filter_by(
+#             email=email, password=password
+#         ).first()
+
+#         if usr and usr.role == 0:  # Admin login
+#             session["username"] = usr.username  # Store admin username in session
+#             session["customer_id"] = usr.id  # Store customer ID in session
+#             services = fetch_all_services()  # Fetch services
+#             updated_professional = fetch_all_professional()  # Fetch professionals
+#             return render_template(
+#                 "admin_dashboard.html",
+#                 admin=usr.username,
+#                 services=services,
+#                 professionals=updated_professional,
+#             )
+#         elif usr and usr.role != 0:  # Normal customer login
+#             session["username"] = usr.username  # Store customer username in session
+#             session["customer_id"] = usr.id  # Store customer ID in session
+#             return redirect(url_for("customer_dashboard"))
+#         elif not usr and usr1:  # Service professional login
+#             session["username"] = (
+#                 usr1.username
+#             )  # Store professional username in session
+#             session["professional_id"] = usr1.id  # Store professional ID in session
+#             return redirect(url_for("professional_dashboard"))
+#         else:
+#             return render_template("login.html", msg="Invalid Credentials")
+
+#     return render_template("login.html", msg="")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def user_login():
-    # Check if user is already logged in as admin
+    # Check if user is already logged in
     if "username" in session:
-        usr = Customer.query.filter_by(username=session["username"]).first()
-
-        if usr and usr.role == 0:  # If admin is logged in
-            services = fetch_all_services()
-            professionals = fetch_all_professional()
-            return render_template(
-                "admin_dashboard.html",
-                admin=usr.username,
-                services=services,
-                professionals=professionals,
+        return redirect(
+            url_for("admin_dashboard")
+            if session.get("role") == 0
+            else (
+                "customer_dashboard"
+                if session.get("role") == 1
+                else "professional_dashboard"
             )
+        )
 
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("pwd")
-        usr = Customer.query.filter_by(email=email, password=password).first()
-        usr1 = Service_Professional.query.filter_by(
-            email=email, password=password
-        ).first()
 
-        if usr and usr.role == 0:  # Admin login
+        # Fetch user as admin
+        usr = Customer.query.filter_by(email=email).first()
+
+        # Check if user is an admin
+        if usr and usr.password == password and usr.role == 0:  # Admin login
             session["username"] = usr.username  # Store admin username in session
             session["customer_id"] = usr.id  # Store customer ID in session
-            services = fetch_all_services()  # Fetch services
-            updated_professional = fetch_all_professional()  # Fetch professionals
-            return render_template(
-                "admin_dashboard.html",
-                admin=usr.username,
-                services=services,
-                professionals=updated_professional,
-            )
-        elif usr and usr.role != 0:  # Normal customer login
+            session["role"] = usr.role  # Store user role in session
+            return redirect(url_for("admin_dashboard"))  # Redirect to admin dashboard
+
+        # Fetch user as a service professional
+        usr1 = Service_Professional.query.filter_by(email=email).first()
+
+        # Check if user is a normal customer
+        if usr and usr.password == password and usr.role != 0:  # Normal customer login
             session["username"] = usr.username  # Store customer username in session
             session["customer_id"] = usr.id  # Store customer ID in session
+            session["role"] = usr.role  # Store user role in session
             return redirect(url_for("customer_dashboard"))
-        elif not usr and usr1:  # Service professional login
+
+        # Check if user is a service professional
+        elif usr1 and usr1.password == password:  # Service professional login
             session["username"] = (
                 usr1.username
             )  # Store professional username in session
             session["professional_id"] = usr1.id  # Store professional ID in session
+            session["role"] = (
+                2  # Store user role in session (assuming 2 is for service professional)
+            )
             return redirect(url_for("professional_dashboard"))
-        else:
-            return render_template("login.html", msg="Invalid Credentials")
+
+        # Invalid credentials message
+        return render_template("login.html", msg="Invalid Credentials")
 
     return render_template("login.html", msg="")
+
+
+@app.route("/admin_dashboard")
+def admin_dashboard():
+    if (
+        "username" in session and session.get("role") == 0
+    ):  # Check if logged in as admin
+        services = fetch_all_services()
+        professionals = fetch_all_professional()
+        service_requests = Service_Request.query.all()  # Fetch all service requests
+
+        return render_template(
+            "admin_dashboard.html",
+            admin=session["username"],
+            services=services,
+            professionals=professionals,
+            service_requests=service_requests,  # Pass service requests to the template
+        )
+    else:
+        return redirect(url_for("user_login"))  # Redirect to login if not an admin
+
+
+@app.route("/admin/summary", methods=["GET"])
+def admin_summary():
+    # Assuming the session contains the admin's username
+    admin = session.get("username")
+    return render_template("admin_summary.html", admin=admin)
+
+
+@app.route("/admin/summary/api", methods=["GET"])
+def admin_summary_api():
+    # Fetch the data for customer ratings and service request summary
+    customer_ratings = fetch_customer_ratings()
+    service_request_summary = fetch_service_request_summary()
+
+    return jsonify(
+        {
+            "customer_ratings": customer_ratings,
+            "service_request_summary": service_request_summary,
+        }
+    )
+
+
+def fetch_customer_ratings():
+    ratings_count = {
+        "1 Star": 0,
+        "2 Stars": 0,
+        "3 Stars": 0,
+        "4 Stars": 0,
+        "5 Stars": 0,
+    }
+
+    # Fetch service requests with ratings
+    service_requests = Service_Request.query.with_entities(Service_Request.rating).all()
+
+    for request in service_requests:
+        rating = request.rating
+        if rating is not None and 1 <= rating <= 5:
+            ratings_count[f"{rating} Star" if rating == 1 else f"{rating} Stars"] += 1
+
+    return {
+        "labels": list(ratings_count.keys()),
+        "data": list(ratings_count.values()),
+    }
+
+
+def fetch_service_request_summary():
+    # Updated status categories with initial counts
+    status_count = {
+        "Ongoing": 0,
+        "Closed": 0,  # Adding Closed
+        "Rejected": 0,  # Adding Rejected
+    }
+
+    # Fetch the service_status values from the database
+    service_requests = Service_Request.query.with_entities(
+        Service_Request.service_status
+    ).all()
+
+    for request in service_requests:
+        status = (
+            request.service_status.strip().capitalize()
+        )  # Clean and standardize the status
+        if status in status_count:
+            status_count[status] += 1
+        else:
+            print(f"Unknown status encountered: {status}")  # Log for debugging
+
+    return {
+        "labels": list(status_count.keys()),
+        "data": list(status_count.values()),
+    }
 
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -465,7 +612,7 @@ def get_service_professionals(service_id):
 def book_service():
     service_id = request.form.get("service_id")
     professional_id = request.form.get("professional_id")
-    customer_id = session.get("customer_id")    
+    customer_id = session.get("customer_id")
 
     if service_id and professional_id and customer_id:
         new_request = Service_Request(
@@ -577,7 +724,7 @@ def professional_dashboard():
             "professional_dashboard.html",
             today_services=today_services,
             closed_services=closed_services,
-            professional=session.get("username"),
+            professional=session["username"],
         )
 
 
@@ -641,3 +788,226 @@ def close_service_professional(request_id):
         service_request.date_of_completion = datetime.utcnow()
         db.session.commit()
         return redirect(url_for("professional_dashboard"))
+
+
+@app.route("/professional_dashboard/summary")
+def professional_summary():
+    professional_id = session.get("professional_id")
+
+    # Ratings data
+    ratings_data = (
+        db.session.query(Service_Request.rating, func.count(Service_Request.rating))
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.rating.isnot(None),
+        )
+        .group_by(Service_Request.rating)
+        .all()
+    )
+
+    # Service status data
+    service_status_data = {
+        "accepted": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "ongoing",
+        )
+        .count(),
+        "rejected": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "rejected",
+        )
+        .count(),
+        "completed": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "closed",
+        )
+        .count(),
+    }
+
+    # Prepare data in a JSON-friendly structure
+    ratings_chart_data = {
+        "labels": [str(r[0]) for r in ratings_data],  # Ensure they are strings
+        "values": [r[1] for r in ratings_data],
+    }
+    status_chart_data = {
+        "labels": list(service_status_data.keys()),
+        "values": list(service_status_data.values()),
+    }
+
+    # Pass the data to the template
+    return render_template(
+        "professional_summary.html",
+        ratings_data=ratings_chart_data,
+        status_data=status_chart_data,
+        professional=session["username"],
+
+    )
+
+
+@app.route("/professional_dashboard/summary/api")
+def professional_summary_api():
+    professional_id = session.get("professional_id")
+
+    # Repeat the logic for ratings and service status
+    ratings_data = (
+        db.session.query(Service_Request.rating, func.count(Service_Request.rating))
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.rating.isnot(None),
+        )
+        .group_by(Service_Request.rating)
+        .all()
+    )
+
+    service_status_data = {
+        "accepted": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "accepted",
+        )
+        .count(),
+        "rejected": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "rejected",
+        )
+        .count(),
+        "completed": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "closed",
+        )
+        .count(),
+    }
+
+    # Prepare data in a JSON-friendly structure
+    ratings_chart_data = {
+        "labels": [str(r[0]) for r in ratings_data],  # Ensure they are strings
+        "values": [r[1] for r in ratings_data],
+    }
+    status_chart_data = {
+        "labels": list(service_status_data.keys()),
+        "values": list(service_status_data.values()),
+    }
+
+    return jsonify(
+        {
+            "ratings": ratings_chart_data,
+            "status": status_chart_data,
+        }
+    )
+
+
+@app.route("/customer_dashboard/summary")
+def customer_summary():
+    customer_id = session.get("customer_id")
+
+    # Ratings data
+    ratings_data = (
+        db.session.query(Service_Request.rating, func.count(Service_Request.rating))
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.rating.isnot(None),
+        )
+        .group_by(Service_Request.rating)
+        .all()
+    )
+
+    # Service status data
+    service_status_data = {
+        "accepted": db.session.query(Service_Request)
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.service_status == "accepted",
+        )
+        .count(),
+        "rejected": db.session.query(Service_Request)
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.service_status == "rejected",
+        )
+        .count(),
+        "completed": db.session.query(Service_Request)
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.service_status == "completed",
+        )
+        .count(),
+    }
+
+    # Prepare data in a JSON-friendly structure
+    ratings_chart_data = {
+        "labels": [str(r[0]) for r in ratings_data],  # Ensure they are strings
+        "values": [r[1] for r in ratings_data],
+    }
+    status_chart_data = {
+        "labels": list(service_status_data.keys()),
+        "values": list(service_status_data.values()),
+    }
+
+    return render_template(
+        "customer_summary.html",
+        ratings_data=ratings_chart_data,
+        status_data=status_chart_data,
+        customer=session["username"],
+    )
+
+
+@app.route("/customer_dashboard/summary/api")
+def customer_summary_api():
+    customer_id = session.get("customer_id")
+
+    # Fetching ratings data
+    ratings_data = (
+        db.session.query(Service_Request.rating, func.count(Service_Request.rating))
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.rating.isnot(None),
+        )
+        .group_by(Service_Request.rating)
+        .all()
+    )
+
+    # Preparing ratings chart data
+    ratings_chart_data = {
+        "labels": [str(r[0]) for r in ratings_data],  # Convert ratings to strings
+        "values": [r[1] for r in ratings_data],
+    }
+
+    # Fetching service status data
+    service_status_data = {
+        "accepted": db.session.query(Service_Request)
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.service_status == "ongoing",
+        )
+        .count(),
+        "rejected": db.session.query(Service_Request)
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.service_status == "rejected",
+        )
+        .count(),
+        "completed": db.session.query(Service_Request)
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.service_status == "closed",
+        )
+        .count(),
+    }
+
+    # Preparing status chart data
+    status_chart_data = {
+        "labels": list(service_status_data.keys()),
+        "values": list(service_status_data.values()),
+    }
+
+    return jsonify(
+        {
+            "ratings_data": ratings_chart_data,
+            "status_data": status_chart_data,
+        }
+    )

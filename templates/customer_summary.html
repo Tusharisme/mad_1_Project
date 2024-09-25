@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Summary</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Set specific dimensions for the charts */
+        .chart-container {
+            display: flex;
+            justify-content: center;
+            /* Center the charts */
+            margin: 20px 0;
+            /* Margin for spacing */
+        }
+
+        canvas {
+            max-width: 400px;
+            /* Max width for the charts */
+            max-height: 300px;
+            /* Max height for the charts */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div id="panel">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+                    <label>Welcome {{ customer }}</label>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('customer_dashboard') }}">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('customer_summary') }}">Summary</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="#">Profile</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Logout</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <h2>Service Request Summary</h2>
+            <div class="chart-container">
+                <canvas id="statusChart"></canvas>
+            </div>
+
+            <script>
+                // Fetch data from the API
+                fetch("{{ url_for('customer_summary_api') }}")
+                    .then(response => response.json())
+                    .then(data => {
+                        const statusData = {
+                            labels: data.status_data.labels,
+                            datasets: [{
+                                label: 'Service Status',
+                                backgroundColor: [
+                                    'rgba(54, 162, 235, 0.6)', // Blue
+                                    'rgba(255, 99, 132, 0.6)', // Red
+                                    'rgba(255, 206, 86, 0.6)', // Yellow
+                                ],
+                                data: data.status_data.values,
+                            }]
+                        };
+
+                        const ctx = document.getElementById('statusChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: statusData,
+                            options: {
+                                responsive: true,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            }
+                        });
+                    })
+                    .catch(error => console.error('Error fetching data:', error));
+            </script>
+
+        </div>
+    </div>
+</body>
+
+</html>

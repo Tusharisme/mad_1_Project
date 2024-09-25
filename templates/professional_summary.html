@@ -1,0 +1,143 @@
+<!-- Professional Summary -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Professional Summary</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+    <style>
+        /* Set specific dimensions for the charts */
+        .chart-container {
+            display: flex;
+            justify-content: space-around;
+            /* Distribute space around the charts */
+            margin: 20px 0;
+            /* Margin for spacing */
+        }
+
+        canvas {
+            max-width: 400px;
+            /* Max width for the charts */
+            max-height: 300px;
+            /* Max height for the charts */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div id="panel">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+                    <label>Welcome {{ professional }}</label>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('professional_dashboard') }}">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('professional_summary') }}">Summary</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="#">Profile</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Logout</a>
+                            </li>
+                        </ul>
+                        <form class="d-flex" action="{{ url_for('search_service') }}" method="GET">
+                            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search"
+                                name="query" />
+                            <button class="btn btn-outline-success" type="submit">Search</button>
+                        </form>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="container mt-4">
+                <h3>Service Summary</h3>
+
+                <!-- Chart Container -->
+                <div class="chart-container">
+                    <!-- Ratings Chart -->
+                    <div>
+                        <h4>Ratings</h4>
+                        <canvas id="ratingsChart"></canvas>
+                    </div>
+
+                    <!-- Service Status Chart -->
+                    <div>
+                        <h4>Service Status</h4>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Ratings Chart Data from Flask route
+        const ratingsData = {{ ratings_data | tojson | safe }};
+        const statusData = {{ status_data | tojson | safe }};
+
+        // Set up Ratings Chart
+        const ratingsChartCtx = document.getElementById('ratingsChart').getContext('2d');
+        const ratingsChart = new Chart(ratingsChartCtx, {
+            type: 'bar',
+            data: {
+                labels: ratingsData.labels,
+                datasets: [{
+                    label: 'Number of Ratings',
+                    data: ratingsData.values,
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Set up Service Status Chart
+        const statusChartCtx = document.getElementById('statusChart').getContext('2d');
+        const statusChart = new Chart(statusChartCtx, {
+            type: 'pie',
+            data: {
+                labels: statusData.labels,
+                datasets: [{
+                    label: 'Service Status',
+                    data: statusData.values,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 206, 86, 0.6)',
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+            }
+        });
+    </script>
+</body>
+
+</html>
