@@ -1,3 +1,4 @@
+<!-- Professional Dashboard -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -16,7 +17,6 @@
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <div class="container-fluid">
                     <label>Welcome {{ professional }}</label>
-
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                             <li class="nav-item">
@@ -25,7 +25,7 @@
                             <li class="nav-item">
                                 <a class="nav-link active" aria-current="page" href="#">Summary</a>
                             </li>
-                            <li class="nav-item"></li>
+                            <li class="nav-item">
                                 <a class="nav-link active" aria-current="page" href="#">Profile</a>
                             </li>
                             <li class="nav-item">
@@ -41,7 +41,6 @@
                 </div>
             </nav>
 
-            <!-- Today's Services Section -->
             <h2>Today's Services</h2>
             {% if today_services %}
             <table class="table table-info table-hover">
@@ -62,13 +61,21 @@
                         <td>{{ request.customer.phone_no }}</td>
                         <td>{{ request.customer.address }}</td>
                         <td>
-                            <form action="{{ url_for('complete_service', request_id=request.id) }}" method="POST">
+                            <!-- If status is ongoing, show "Ongoing" label and remove the Close button -->
+                            {% if request.service_status == 'ongoing' %}
+                            <span>Ongoing</span>
+
+                            <!-- If status is requested, show Accept/Reject buttons -->
+                            {% elif request.service_status == 'requested' %}
+                            <form action="{{ url_for('complete_service', request_id=request.id) }}"
+                                style="display:inline;" method="POST">
                                 <button type="submit">Accept</button>
                             </form>
-
-                            <form action="{{ url_for('reject_service', request_id=request.id) }}" method="POST">
-                                <button type="submit">Rejected</button>
+                            <form action="{{ url_for('reject_service', request_id=request.id) }}"
+                                style="display:inline;" method="POST">
+                                <button type="submit">Reject</button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

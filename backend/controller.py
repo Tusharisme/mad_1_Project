@@ -5,6 +5,8 @@ from flask import current_app
 from flask import session, jsonify
 import os
 from werkzeug.utils import secure_filename
+from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 
 from backend.models import *
 from datetime import datetime
@@ -446,25 +448,6 @@ def customer_dashboard():
     )
 
 
-# Route to display all available services
-# @app.route("/services", methods=["GET"])
-# def list_services():
-#     services = Service.query.all()  # Fetch all services from the database
-#     return render_template("services_list.html", services=services)
-
-
-# Route to display professionals associated with a service
-# @app.route("/services/<int:service_id>", methods=["GET"])
-# def get_service_professionals(service_id):
-#     service = Service.query.get_or_404(service_id)
-#     professionals = (
-#         Service_Professional.query.join(ProfessionalService)
-#         .filter_by(service_id=service_id)
-#         .all()
-#     )
-#     return render_template(
-#         "service_professionals.html", service=service, professionals=professionals
-#     )
 @app.route("/services/<int:service_id>", methods=["GET"])
 def get_service_professionals(service_id):
     service = Service.query.get_or_404(service_id)
@@ -482,11 +465,7 @@ def get_service_professionals(service_id):
 def book_service():
     service_id = request.form.get("service_id")
     professional_id = request.form.get("professional_id")
-    customer_id = session.get("customer_id")
-
-    print("Service ID:", service_id)
-    print("Professional ID:", professional_id)
-    print("Customer ID:", customer_id)
+    customer_id = session.get("customer_id")    
 
     if service_id and professional_id and customer_id:
         new_request = Service_Request(
@@ -503,21 +482,6 @@ def book_service():
     else:
         flash("Failed to book service. Try again.")
         return redirect(url_for("customer_dashboard"))
-
-
-# @app.route("/customer/service_history")
-# def customer_service_history():
-#     # Assuming the logged-in customer's ID is stored in the session
-#     customer_id = session.get("customer_id")
-
-#     if not customer_id:
-#         return redirect(url_for("user_login"))
-
-#     # Fetch all service requests for the logged-in customer
-#     service_requests = Service_Request.query.filter_by(customer_id=customer_id).all()
-
-#     # Render the service history template with the fetched data
-#     return render_template("service_history.html", service_requests=service_requests)
 
 
 @app.route("/search_service", methods=["POST"])
@@ -543,25 +507,43 @@ def search_service():
     )
 
 
+# @app.route("/close_service", methods=["POST"])
+# def close_service():
+#     data = request.get_json()  # or use form data
+#     request_id = data.get("requestId")
+#     rating = data.get("serviceRating")
+#     remarks = data.get("serviceRemarks")
+
+#     service_request = Service_Request.query.get(request_id)
+#     if service_request:
+#         service_request.rating = rating  # Ensure your model has this field
+#         service_request.remarks = remarks
+#         service_request.service_status = "closed"  # Update status if needed
+#         service_request.date_of_completion = datetime.utcnow()  # Set completion date
+#         db.session.commit()  # Commit the changes
+
+
+#     return redirect(url_for("customer_dashboard"))  # Redirect to the dashboard
 @app.route("/close_service", methods=["POST"])
 def close_service():
-    data = request.get_json()  # or use form data
-    request_id = data.get("requestId")
-    rating = data.get("serviceRating")
-    remarks = data.get("serviceRemarks")
+    data = request.get_json()
+    request_id = data["requestId"]
+    rating = data["serviceRating"]
+    remarks = data["serviceRemarks"]
+    # Validate rating
+    if not (1 <= int(rating) <= 5):
+        return jsonify({"error": "Rating must be between 1 and 5"}), 400
 
     service_request = Service_Request.query.get(request_id)
     if service_request:
-        service_request.rating = rating  # Ensure your model has this field
+        # Update rating and remarks
+        service_request.rating = rating
         service_request.remarks = remarks
-        service_request.service_status = "closed"  # Update status if needed
+        # Set status to closed
+        service_request.service_status = "closed"
         service_request.date_of_completion = datetime.utcnow()  # Set completion date
-        db.session.commit()  # Commit the changes
-
-    return redirect(url_for("customer_dashboard"))  # Redirect to the dashboard
-
-
-from sqlalchemy.orm import joinedload
+        db.session.commit()
+        return redirect(url_for("customer_dashboard"))
 
 
 @app.route("/professional_dashboard")
@@ -579,10 +561,13 @@ def professional_dashboard():
             .filter_by(professional_id=professional_id)
             .all()
         )
+        # service_requests.service_status == "pending"
 
-        # Fetch today's and closed services
+        # Fetch today's services, including both requested and accepted services
         today_services = [
-            req for req in service_requests if req.service_status == "requested"
+            req
+            for req in service_requests
+            if req.service_status in ["requested", "ongoing"]
         ]
         closed_services = [
             req for req in service_requests if req.service_status == "closed"
@@ -596,61 +581,26 @@ def professional_dashboard():
         )
 
 
-# @app.route("/professional_dashboard")
-# def professional_dashboard():
-#     if "professional_id" in session:  # Check if professional is logged in
-#         professional_id = session["professional_id"]
-
-#         # Fetching all service requests for this professional
-#         service_requests = Service_Request.query.filter_by(
-#             professional_id=professional_id, service_status="Pending"
-#         ).all()
-
-#         # Fetching closed service requests for this professional
-#         closed_services = Service_Request.query.filter_by(
-#             professional_id=professional_id, service_status="Completed"
-#         ).all()
-
-#         # Fetch the professional's details if needed
-#         professional = Service_Professional.query.filter_by(id=professional_id).first()
-
-#         return render_template(
-#             "professional_dashboard.html",
-#             service_requests=service_requests,
-#             closed_services=closed_services,  # Pass closed services to the template
-#             professional=professional,
-#         )
-#     else:
-#         return redirect(url_for("user_login"))  # Redirect to login if not logged in
+# @app.route("/complete_service/<int:request_id>", methods=["POST"])
+# def complete_service(request_id):
+#     service_request = Service_Request.query.get(request_id)
+#     professional_id = session["professional_id"]
 
 
-# # Route to mark a service as completed
-# @app.route("/complete_service/<int:service_id>")
-# def complete_service(service_id):
-#     service_request = Service_Request.query.get(service_id)
-#     service_request.service_status = "Completed"
-#     service_request.date_of_completion = datetime.utcnow()
-#     db.session.commit()
-#     return redirect(url_for("professional_dashboard"))
-
-
-# # Route to reject a service
-# @app.route("/reject_service/<int:service_id>")
-# def reject_service(service_id):
-#     service_request = Service_Request.query.get(service_id)
-#     service_request.service_status = "Rejected"
-#     db.session.commit()
-#     return redirect(url_for("professional_dashboard"))
-
-
+#     if service_request and service_request.professional_id == professional_id:
+#         service_request.service_status = "accepted"
+#         service_request.date_of_completion = datetime.utcnow()
+#         db.session.commit()
+#         return redirect(url_for("professional_dashboard"))
 @app.route("/complete_service/<int:request_id>", methods=["POST"])
 def complete_service(request_id):
     service_request = Service_Request.query.get(request_id)
     professional_id = session["professional_id"]
 
     if service_request and service_request.professional_id == professional_id:
-        service_request.service_status = "accepted"
-        service_request.date_of_completion = datetime.utcnow()
+        # Update status to ongoing instead of accepted
+        service_request.service_status = "ongoing"
+        service_request.date_of_completion = None  # Reset completion date if needed
         db.session.commit()
         return redirect(url_for("professional_dashboard"))
 
@@ -663,6 +613,31 @@ def reject_service(request_id):
     if service_request and service_request.professional_id == professional_id:
         # db.session.delete(service_request)
         service_request.service_status = "rejected"
+        service_request.date_of_completion = datetime.utcnow()
+        db.session.commit()
+        return redirect(url_for("professional_dashboard"))
+
+
+# @app.route("/close_service_professional/<int:request_id>", methods=["POST"])
+# def close_service_professional(request_id):
+#     service_request = Service_Request.query.get(request_id)
+#     professional_id = session["professional_id"]
+
+#     if service_request and service_request.professional_id == professional_id:
+#         # Update status to 'completed' instead of 'closed'
+#         service_request.service_status = "completed"
+#         service_request.date_of_completion = datetime.utcnow()
+#         db.session.commit()
+#         return redirect(url_for("professional_dashboard"))
+
+
+@app.route("/close_service_professional/<int:request_id>", methods=["POST"])
+def close_service_professional(request_id):
+    service_request = Service_Request.query.get(request_id)
+    professional_id = session["professional_id"]
+
+    if service_request and service_request.professional_id == professional_id:
+        service_request.service_status = "closed"
         service_request.date_of_completion = datetime.utcnow()
         db.session.commit()
         return redirect(url_for("professional_dashboard"))
