@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Professional Profile</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+</head>
+
+<body>
+    <div id="container">
+        <div id="panel">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+                    <label>Welcome {{ professional.username }}</label>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('professional_dashboard') }}">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('professional_summary') }}">Summary</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('professional_profile') }}">Profile</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Logout</a>
+                            </li>
+                        </ul>
+                        <form class="d-flex" action="{{ url_for('search_service') }}" method="GET">
+                            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search"
+                                name="query" />
+                            <button class="btn btn-outline-success" type="submit">Search</button>
+                        </form>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Flash Messages Section -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="container">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- Add Profile Information Update Section -->
+            <h2>Professional Profile</h2>
+            <form method="POST" action="{{ url_for('update_professional_profile') }}">
+                <p><strong>Name:</strong> <input type="text" class="form-control" name="name"
+                        value="{{ professional.name }}" required /></p>
+                <p><strong>Email:</strong> <input type="email" class="form-control" name="email"
+                        value="{{ professional.email }}" required /></p>
+                <p><strong>Username:</strong> <input type="text" class="form-control" name="username"
+                        value="{{ professional.username }}" required /></p>
+                <p><strong>Address:</strong> <input type="text" class="form-control" name="address"
+                        value="{{ professional.address }}" required /></p>
+                <p><strong>Pin Code:</strong> <input type="text" class="form-control" name="pin_code"
+                        value="{{ professional.pin_code }}" required /></p>
+
+                <button type="submit" class="btn btn-primary">Update Profile</button>
+            </form>
+
+            <h3>Your Services</h3>
+            <form method="POST" action="{{ url_for('update_professional_services') }}">
+                <table class="table table-info table-hover">
+                    <thead>
+                        <tr>
+                            <th>Service Name</th>
+                            <th>Base Price</th>
+                            <th>Custom Price</th>
+                            <th>Custom Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for service in professional_services %}
+                        <tr>
+                            <td>{{ service.service.name }}</td>
+                            <td>{{ service.service.base_price }}</td>
+                            <td>
+                                <input type="text" class="form-control" name="custom_price_{{ service.service_id }}"
+                                    value="{{ service.custom_price or '' }}" placeholder="Enter custom price" />
+                            </td>
+                            <td>
+                                <input type="text" class="form-control"
+                                    name="custom_description_{{ service.service_id }}"
+                                    value="{{ service.custom_description or '' }}"
+                                    placeholder="Enter custom description" />
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button type="submit" class="btn btn-primary">Update Services</button>
+            </form>
+
+        </div>
+    </div>
+</body>
+
+</html>

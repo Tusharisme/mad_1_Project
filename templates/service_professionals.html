@@ -5,6 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Service Professionals</title>
+    <link rel="stylesheet" href="/static/style.css" />
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
 
@@ -13,7 +15,7 @@
         <h3>Professionals for {{ service.name }}</h3>
         {% if professionals %}
         <div class="row">
-            {% for professional in professionals %}
+            {% for professional, professional_service in professionals %}
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-body">
@@ -22,11 +24,30 @@
                         <p class="card-text">Email: {{ professional.email }}</p>
                         <p class="card-text">Service: {{ professional.service_type }}</p>
                         <p class="card-text">Address: {{ professional.address }}</p>
-                        <!-- Add more details as needed -->
+
+                        <!-- Check if custom_price is set, otherwise use service.base_price -->
+                        <p class="card-text">Price: $
+                            {% if professional_service.custom_price %}
+                            {{ professional_service.custom_price }}
+                            {% else %}
+                            {{ service.base_price }}
+                            {% endif %}
+                        </p>
+
+                        <!-- Check if custom_description is set, otherwise use service.description -->
+                        <p class="card-text">Description:
+                            {% if professional_service.custom_description %}
+                            {{ professional_service.custom_description }}
+                            {% else %}
+                            {{ service.description }}
+                            {% endif %}
+                        </p>
+
                         <form action="{{ url_for('book_service') }}" method="POST">
                             <input type="hidden" name="service_id" value="{{ service.id }}">
                             <input type="hidden" name="professional_id" value="{{ professional.id }}">
-                            <button type="submit">Book Service</button>
+                            <button type="submit" class="btn btn-secondary">Book Service</button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -35,7 +56,7 @@
         {% else %}
         <p>No professionals available for this service.</p>
         {% endif %}
-
+        <br><br>
         <a href="{{ url_for('customer_dashboard') }}" class="btn btn-primary mt-3">Back to Services</a>
     </div>
 </body>

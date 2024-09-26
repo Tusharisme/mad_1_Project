@@ -235,6 +235,14 @@ def user_signup():
         pin_code = request.form.get("pin_code")
         phone_no = request.form.get("phone_no")
         usr = Customer.query.filter_by(email=email, password=password).first()
+
+        # Check if it's the first customer
+        first_customer = Customer.query.first()
+
+        if first_customer is None:  # No customers exist, make the new user an admin
+            role = 0  # Admin role
+        else:
+            role = 1  # Customer role
         if not usr:
             new_usr = Customer(
                 username=uname,
@@ -244,6 +252,7 @@ def user_signup():
                 address=address,
                 pin_code=pin_code,
                 phone_no=phone_no,
+                role=role,
             )
             db.session.add(new_usr)
             db.session.commit()
@@ -595,14 +604,32 @@ def customer_dashboard():
     )
 
 
+# @app.route("/services/<int:service_id>", methods=["GET"])
+# def get_service_professionals(service_id):
+#     service = Service.query.get_or_404(service_id)
+#     professionals = (
+#         Service_Professional.query.join(ProfessionalService)
+#         .filter(ProfessionalService.service_id == service_id)
+#         .all()
+#     )
+#     return render_template(
+#         "service_professionals.html", service=service, professionals=professionals
+#     )
 @app.route("/services/<int:service_id>", methods=["GET"])
 def get_service_professionals(service_id):
     service = Service.query.get_or_404(service_id)
+
+    # Fetch professionals along with their custom services related to the current service
     professionals = (
-        Service_Professional.query.join(ProfessionalService)
+        db.session.query(Service_Professional, ProfessionalService)
+        .join(
+            ProfessionalService,
+            ProfessionalService.professional_id == Service_Professional.id,
+        )
         .filter(ProfessionalService.service_id == service_id)
         .all()
     )
+
     return render_template(
         "service_professionals.html", service=service, professionals=professionals
     )
@@ -843,7 +870,6 @@ def professional_summary():
         ratings_data=ratings_chart_data,
         status_data=status_chart_data,
         professional=session["username"],
-
     )
 
 
@@ -1011,3 +1037,178 @@ def customer_summary_api():
             "status_data": status_chart_data,
         }
     )
+
+
+@app.route("/professional/profile", methods=["GET"])
+def professional_profile():
+    # Fetch the currently logged-in professional
+    professional = Service_Professional.query.filter_by(
+        id=session["professional_id"]
+    ).first()
+
+    if not professional:
+        flash("Professional not found", "danger")
+        return redirect(url_for("home"))
+
+    # Fetch services associated with the professional
+    professional_services = ProfessionalService.query.filter_by(
+        professional_id=professional.id
+    ).all()
+
+    return render_template(
+        "professional_profile.html",
+        professional=professional,
+        professional_services=professional_services,
+    )
+
+
+@app.route("/professional/profile/update", methods=["POST"])
+def update_professional_profile():
+    professional_id = session.get("professional_id")
+    professional = Service_Professional.query.filter_by(id=professional_id).first()
+
+    if not professional:
+        flash("Professional not found", "danger")
+        return redirect(url_for("professional_profile"))
+
+    # Get the form data
+    name = request.form.get("name")
+    username = request.form.get("username")
+    email = request.form.get("email")
+    address = request.form.get("address")
+    pin_code = request.form.get("pin_code")
+
+    # Check if the new username already exists in both tables, excluding the current professional
+    existing_username_professional = Service_Professional.query.filter(
+        Service_Professional.username == username,
+        Service_Professional.id != professional_id,
+    ).first()
+    existing_username_customer = Customer.query.filter(
+        Customer.username == username
+    ).first()
+
+    # Check if the new email already exists in both tables, excluding the current professional
+    existing_email_professional = Service_Professional.query.filter(
+        Service_Professional.email == email, Service_Professional.id != professional_id
+    ).first()
+    existing_email_customer = Customer.query.filter(Customer.email == email).first()
+
+    if existing_username_professional or existing_username_customer:
+        flash("Username already exists. Please choose a different one.", "danger")
+        return redirect(url_for("professional_profile"))
+
+    if existing_email_professional or existing_email_customer:
+        flash("Email address already exists. Please choose a different one.", "danger")
+        return redirect(url_for("professional_profile"))
+
+    # Update the professional's information
+    professional.name = name
+    professional.username = username
+    professional.email = email
+    professional.address = address
+    professional.pin_code = pin_code
+
+    # Commit changes to the database
+    db.session.commit()
+
+    flash("Profile updated successfully!", "success")
+    return redirect(url_for("professional_profile"))
+
+
+@app.route("/professional/profile/update_services", methods=["POST"])
+def update_professional_services():
+    professional_id = session.get("professional_id")
+    if not professional_id:
+        flash("You must be logged in to update services.", "danger")
+        return redirect(url_for("professional_profile"))
+
+    # Fetch the professional's services
+    professional_services = ProfessionalService.query.filter_by(
+        professional_id=professional_id
+    ).all()
+
+    # Loop through each service and update its custom price and description if provided
+    for service in professional_services:
+        custom_price = request.form.get(f"custom_price_{service.service_id}")
+        custom_description = request.form.get(
+            f"custom_description_{service.service_id}"
+        )
+
+        if custom_price:
+            service.custom_price = float(custom_price)  # Ensure it's stored as a float
+        if custom_description:
+            service.custom_description = custom_description
+
+    # Commit changes to the database
+    db.session.commit()
+    flash("Services updated successfully!", "success")
+    return redirect(url_for("professional_profile"))
+
+
+@app.route("/customer/profile", methods=["GET"])
+def customer_profile():
+    # Fetch the logged-in customer's details
+    customer_id = session.get("customer_id")
+    customer = Customer.query.filter_by(id=customer_id).first()
+
+    if not customer:
+        flash("Customer not found", "danger")
+        return redirect(url_for("home"))
+
+    return render_template("customer_profile.html", customer=customer)
+
+
+@app.route("/customer/profile/update", methods=["POST"])
+def update_customer_profile():
+    customer_id = session.get("customer_id")
+    customer = Customer.query.filter_by(id=customer_id).first()
+
+    if not customer:
+        flash("Customer not found", "danger")
+        return redirect(url_for("customer_profile"))
+
+    # Get the form data
+    name = request.form.get("name")
+    username = request.form.get("username")
+    email = request.form.get("email")
+    address = request.form.get("address")
+    pin_code = request.form.get("pin_code")
+
+    # Check if the new username already exists in the Customer table or Service Professional table
+    existing_username_customer = Customer.query.filter(
+        Customer.username == username, Customer.id != customer_id
+    ).first()
+
+    existing_username_professional = Service_Professional.query.filter(
+        Service_Professional.username == username
+    ).first()
+
+    # Check if the new email already exists in the Customer table or Service Professional table
+    existing_email_customer = Customer.query.filter(
+        Customer.email == email, Customer.id != customer_id
+    ).first()
+
+    existing_email_professional = Service_Professional.query.filter(
+        Service_Professional.email == email
+    ).first()
+
+    if existing_username_customer or existing_username_professional:
+        flash("Username already exists. Please choose a different one.", "danger")
+        return redirect(url_for("customer_profile"))
+
+    if existing_email_customer or existing_email_professional:
+        flash("Email address already exists. Please choose a different one.", "danger")
+        return redirect(url_for("customer_profile"))
+
+    # Update the customer's information
+    customer.name = name
+    customer.username = username
+    customer.email = email
+    customer.address = address
+    customer.pin_code = pin_code
+
+    # Commit changes to the database
+    db.session.commit()
+
+    flash("Profile updated successfully!", "success")
+    return redirect(url_for("customer_profile"))
