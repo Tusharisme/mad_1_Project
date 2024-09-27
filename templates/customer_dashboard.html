@@ -37,6 +37,21 @@
                             </li>
                         </ul>
                         <form class="d-flex" action="{{ url_for('search_service') }}" method="GET">
+                            <select class="form-select me-2" name="pin_code" id="pin_code">
+                                <option value="" disabled selected>Select Pin Code</option>
+                                {% for pin in pin_codes %}
+                                <option value="{{ pin }}">{{ pin }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <select class="form-select me-2" name="rating" id="rating">
+                                <option value="" disabled selected>Select Rating</option>
+                                <option value="1">1 Star</option>
+                                <option value="2">2 Stars</option>
+                                <option value="3">3 Stars</option>
+                                <option value="4">4 Stars</option>
+                                <option value="5">5 Stars</option>
+                            </select>
                             <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search"
                                 name="query" />
                             <button class="btn btn-outline-success" type="submit">Search</button>
@@ -60,7 +75,7 @@
 
             <!-- Service History Table -->
             <h4 class="mt-4">Service History</h4>
-            <table class="table">
+            <table class="table table-info table-hover">
                 <thead>
                     <tr>
                         <th>ID</th>

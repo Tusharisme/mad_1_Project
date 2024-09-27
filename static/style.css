@@ -56,3 +56,15 @@
 a {
   color: black;
 }
+
+.chart-container {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px 0; /* Margin for spacing */
+}
+
+canvas {
+  max-width: 400px; /* Max width for the charts */
+  max-height: 400px; /* Increase max height for the charts */
+  height: 400px; /* Set an explicit height */
+}

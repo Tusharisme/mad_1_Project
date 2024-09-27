@@ -26,57 +26,6 @@ def logout():
     return redirect(url_for("user_login"))
 
 
-# @app.route("/login", methods=["GET", "POST"])
-# def user_login():
-#     # Check if user is already logged in as admin
-#     if "username" in session:
-#         usr = Customer.query.filter_by(username=session["username"]).first()
-
-#         if usr and usr.role == 0:  # If admin is logged in
-#             services = fetch_all_services()
-#             professionals = fetch_all_professional()
-#             return render_template(
-#                 "admin_dashboard.html",
-#                 admin=usr.username,
-#                 services=services,
-#                 professionals=professionals,
-#             )
-
-#     if request.method == "POST":
-#         email = request.form.get("email")
-#         password = request.form.get("pwd")
-#         usr = Customer.query.filter_by(email=email, password=password).first()
-#         usr1 = Service_Professional.query.filter_by(
-#             email=email, password=password
-#         ).first()
-
-#         if usr and usr.role == 0:  # Admin login
-#             session["username"] = usr.username  # Store admin username in session
-#             session["customer_id"] = usr.id  # Store customer ID in session
-#             services = fetch_all_services()  # Fetch services
-#             updated_professional = fetch_all_professional()  # Fetch professionals
-#             return render_template(
-#                 "admin_dashboard.html",
-#                 admin=usr.username,
-#                 services=services,
-#                 professionals=updated_professional,
-#             )
-#         elif usr and usr.role != 0:  # Normal customer login
-#             session["username"] = usr.username  # Store customer username in session
-#             session["customer_id"] = usr.id  # Store customer ID in session
-#             return redirect(url_for("customer_dashboard"))
-#         elif not usr and usr1:  # Service professional login
-#             session["username"] = (
-#                 usr1.username
-#             )  # Store professional username in session
-#             session["professional_id"] = usr1.id  # Store professional ID in session
-#             return redirect(url_for("professional_dashboard"))
-#         else:
-#             return render_template("login.html", msg="Invalid Credentials")
-
-#     return render_template("login.html", msg="")
-
-
 @app.route("/login", methods=["GET", "POST"])
 def user_login():
     # Check if user is already logged in
@@ -170,6 +119,87 @@ def admin_summary_api():
             "customer_ratings": customer_ratings,
             "service_request_summary": service_request_summary,
         }
+    )
+
+
+@app.route("/search_admin", methods=["GET"])
+def search_admin():
+    entity = request.args.get("entity")
+    criteria = request.args.get("criteria")
+    query = request.args.get("query")
+
+    results = []
+
+    if entity == "service":
+        if not query:
+            results = Service.query.all()
+        else:
+            if criteria == "name":
+                results = Service.query.filter(Service.name.ilike(f"%{query}%")).all()
+            elif criteria == "base_price":
+                results = Service.query.filter(Service.base_price == query).all()
+            elif criteria == "description":
+                results = Service.query.filter(
+                    Service.description.ilike(f"%{query}%")
+                ).all()
+
+    elif entity == "professional":
+        # If no query, fetch all professionals
+        if not query:
+            results = Service_Professional.query.all()
+        else:
+            if criteria == "name":
+                results = Service_Professional.query.filter(
+                    Service_Professional.name.ilike(f"%{query}%")
+                ).all()
+            elif criteria == "experience":
+                results = Service_Professional.query.filter(
+                    Service_Professional.experience == query
+                ).all()
+            elif criteria == "rating":
+                results = Service_Professional.query.filter(
+                    Service_Professional.rating == query
+                ).all()
+
+    elif entity == "service_request":
+        # If no query, fetch all service requests
+        if not query:
+            results = Service_Request.query.all()
+        else:
+
+            if criteria == "customer_name":
+                results = (
+                    Service_Request.query.join(Customer)
+                    .filter(Customer.name.ilike(f"%{query}%"))
+                    .all()
+                )
+            elif criteria == "service_status":
+                results = Service_Request.query.filter(
+                    Service_Request.service_status.ilike(f"%{query}%")
+                ).all()
+
+    elif entity == "customer":
+        # If no query, fetch all customers
+        if not query:
+            results = Customer.query.all()
+        else:
+
+            if criteria == "name":
+                results = Customer.query.filter(Customer.name.ilike(f"%{query}%")).all()
+            elif criteria == "email":
+                results = Customer.query.filter(
+                    Customer.email.ilike(f"%{query}%")
+                ).all()
+            elif criteria == "phone":
+                results = Customer.query.filter(
+                    Customer.phone_no.ilike(f"%{query}%")
+                ).all()
+
+    return render_template(
+        "search_results.html",
+        results=results,
+        category=f"Search Results for {entity.capitalize()}",
+        entity=entity,
     )
 
 
@@ -592,6 +622,10 @@ def customer_dashboard():
     # Fetch all available services (for the service categories section)
     services = Service.query.all()
 
+    # Fetch distinct pin codes from the Service_Professional model
+    pin_codes = db.session.query(Service_Professional.pin_code).distinct().all()
+    pin_codes = [pin[0] for pin in pin_codes]  # Extract pin codes from query results
+
     # Fetch all service requests for the logged-in customer (for the service history section)
     service_requests = Service_Request.query.filter_by(customer_id=customer_id).all()
 
@@ -600,6 +634,7 @@ def customer_dashboard():
         "customer_dashboard.html",
         services=services,
         service_requests=service_requests,
+        pin_codes=pin_codes,
         customer=session.get("username"),  # Assuming customer_name is stored in session
     )
 
@@ -658,26 +693,72 @@ def book_service():
         return redirect(url_for("customer_dashboard"))
 
 
-@app.route("/search_service", methods=["POST"])
+# @app.route("/search_service", methods=["POST"])
+# def search_service():
+#     search_term = request.form.get("service_name")
+
+#     # Perform a case-insensitive search for the service
+#     services = Service.query.filter(Service.name.ilike(f"%{search_term}%")).all()
+
+#     # If no services match the search term, return an empty list
+#     if not services:
+#         return render_template(
+#             "services_by_category.html",
+#             services=[],
+#             category=f"Search Results for: {search_term}",
+#         )
+
+#     # Render search results
+#     return render_template(
+#         "services_by_category.html",
+#         services=services,
+#         category=f"Search Results for: {search_term}",
+#     )
+
+
+# @app.route("/search_service", methods=["GET"])
+# def search_service():
+#     query = request.args.get("query")
+#     if query:
+#         # Perform a search on the service table
+#         services = Service.query.filter(Service.name.ilike(f"%{query}%")).all()
+#     else:
+#         services = []
+#     return render_template(
+#         "services_by_category.html",
+#         services=services,
+#         category=f"Search Results for: {query}",
+#     )
+@app.route("/search_service", methods=["GET"])
 def search_service():
-    search_term = request.form.get("service_name")
+    pin_code = request.args.get("pin_code")
+    rating = request.args.get("rating")
+    query = request.args.get("query")
 
-    # Perform a case-insensitive search for the service
-    services = Service.query.filter(Service.name.ilike(f"%{search_term}%")).all()
+    # Start building the query for services
+    services_query = Service.query
 
-    # If no services match the search term, return an empty list
-    if not services:
-        return render_template(
-            "services_by_category.html",
-            services=[],
-            category=f"Search Results for: {search_term}",
+    if query:
+        services_query = services_query.filter(Service.name.ilike(f"%{query}%"))
+
+    if pin_code:
+        # Join with Service_Professional to filter by pin code
+        services_query = (
+            services_query.join(ProfessionalService)
+            .join(Service_Professional)
+            .filter(Service_Professional.pin_code == pin_code)
         )
 
-    # Render search results
+    if rating:
+        # Assuming you have a Service_Request model related to Service
+        services_query = services_query.join(Service_Request).filter(
+            Service_Request.rating == rating
+        )
+
+    services = services_query.all()
+
     return render_template(
-        "services_by_category.html",
-        services=services,
-        category=f"Search Results for: {search_term}",
+        "services_by_category.html", services=services, category="Search Results"
     )
 
 
@@ -737,6 +818,16 @@ def professional_dashboard():
         )
         # service_requests.service_status == "pending"
 
+        # Fetch unique pin codes based on customers from the service requests
+        pin_codes = (
+            db.session.query(Customer.pin_code)
+            .join(Service_Request)
+            .filter(Service_Request.professional_id == professional_id)
+            .distinct()
+            .all()
+        )
+        pin_codes = [pin[0] for pin in pin_codes]  # Extracting pin codes from tuples
+
         # Fetch today's services, including both requested and accepted services
         today_services = [
             req
@@ -751,8 +842,60 @@ def professional_dashboard():
             "professional_dashboard.html",
             today_services=today_services,
             closed_services=closed_services,
+            pin_codes=pin_codes,
             professional=session["username"],
         )
+
+
+@app.route("/search_customers", methods=["GET"])
+def search_customers():
+    pin_code = request.args.get("pin_code")
+    customer_name = request.args.get("customer_name")
+    closing_date = request.args.get("date")
+
+    service_requests_query = Service_Request.query.filter(
+        Service_Request.professional_id == session["professional_id"]
+    )
+
+    # Filter by closing date if provided
+    if closing_date:
+        try:
+            # Convert the closing date string to a datetime object
+            closing_date_obj = datetime.strptime(closing_date, "%Y-%m-%d")
+            # Adjust the closing date to include only the date part for comparison
+            service_requests_query = service_requests_query.filter(
+                Service_Request.date_of_completion >= closing_date_obj,
+                Service_Request.date_of_completion
+                < closing_date_obj.replace(hour=23, minute=59, second=59),
+            )
+        except ValueError:
+            print(
+                "Invalid date format. Please use YYYY-MM-DD."
+            )  # Handle invalid date format
+
+    # Fetch the matching service requests
+    service_requests = service_requests_query.all()
+
+    # Initialize a set to collect unique customers
+    matching_customers = set()
+
+    for service_request in service_requests:
+        if pin_code and service_request.customer.pin_code != pin_code:
+            continue
+        if (
+            customer_name
+            and customer_name.lower() not in service_request.customer.name.lower()
+        ):
+            continue
+        matching_customers.add(
+            service_request.customer
+        )  # Use a set to avoid duplicates
+
+    return render_template(
+        "matching_customers.html",
+        customers=list(matching_customers),
+        category="Matching Customers",
+    )
 
 
 # @app.route("/complete_service/<int:request_id>", methods=["POST"])
@@ -863,7 +1006,6 @@ def professional_summary():
         "labels": list(service_status_data.keys()),
         "values": list(service_status_data.values()),
     }
-
     # Pass the data to the template
     return render_template(
         "professional_summary.html",

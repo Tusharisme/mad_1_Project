@@ -34,11 +34,21 @@
                                 <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Logout</a>
                             </li>
                         </ul>
-                        <form class="d-flex" action="{{ url_for('search_service') }}" method="GET">
-                            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search"
-                                name="query" />
+                        <form class="d-flex" action="{{ url_for('search_customers') }}" method="GET">
+                            <select class="form-select me-2" name="pin_code" id="pin_code">
+                                <option value="" disabled selected>Select Pin Code</option>
+                                {% for pin in pin_codes %}
+                                <option value="{{ pin }}">{{ pin }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="text" class="form-control me-2" placeholder="Customer Name"
+                                name="customer_name" />
+                            <input type="date" class="form-control me-2" name="date" />
                             <button class="btn btn-outline-success" type="submit">Search</button>
                         </form>
+
+
+
                     </div>
                 </div>
             </nav>
@@ -61,7 +71,7 @@
                         <td>{{ request.id }}</td>
                         <td>{{ request.customer.name }}</td>
                         <td>{{ request.customer.phone_no }}</td>
-                        <td>{{ request.customer.address }}</td>
+                        <td>{{ request.customer.address ~ ', ' ~ request.customer.pin_code }}</td>
                         <td>
                             <!-- If status is ongoing, show "Ongoing" label and remove the Close button -->
                             {% if request.service_status == 'ongoing' %}
@@ -97,7 +107,7 @@
                         <th>Customer Name</th>
                         <th>Contact</th>
                         <th>Location (with pin code)</th>
-                        <th>Date</th>
+                        <th>Closing Date</th>
                         <th>Rating</th>
                     </tr>
                 </thead>
@@ -107,7 +117,7 @@
                         <td>{{ closed_service.id }}</td>
                         <td>{{ closed_service.customer.name }}</td>
                         <td>{{ closed_service.customer.phone_no }}</td>
-                        <td>{{ closed_service.customer.address }}</td>
+                        <td>{{ closed_service.customer.address ~ ','~ closed_service.customer.pin_code}}</td>
                         <td>{{ closed_service.date_of_completion.strftime('%Y-%m-%d') }}</td>
                         <td>{{ closed_service.rating }}</td>
                     </tr>

@@ -37,12 +37,61 @@
                                     Out</a>
                             </li>
                         </ul>
-                        <!-- Search form -->
-                        <form class="d-flex">
-                            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
+                        <form class="d-flex" action="{{ url_for('search_admin') }}" method="GET">
+                            <!-- Dropdown to select entity (Service, Professional, etc.) -->
+                            <select class="form-select me-2" name="entity" id="entity" required>
+                                <option value="" disabled selected>Select Entity</option>
+                                <option value="service">Service</option>
+                                <option value="professional">Professional</option>
+                                <option value="service_request">Service Request</option>
+                                <option value="customer">Customer</option>
+                            </select>
+
+                            <!-- Dropdown to select criteria (optional) -->
+                            <select class="form-select me-2" name="criteria" id="criteria">
+                                <option value="" disabled selected>Select Criteria</option>
+                                <!-- Criteria will be dynamically updated based on entity selection -->
+                            </select>
+
+                            <!-- Search input (optional) -->
+                            <input class="form-control me-2" type="text" placeholder="Search" name="query" />
+
+                            <button class="btn btn-outline-success" type="submit">Search</button>
                         </form>
+
+
+                        <script>
+                            const entityCriteriaMap = {
+                                'service': ['Name', 'Base Price', 'Description'],
+                                'professional': ['Name', 'Experience', 'Rating'],
+                                'service_request': ['Customer Name', 'Service Status'],
+                                'customer': ['Name', 'Email', 'Phone']
+                            };
+
+                            document.getElementById('entity').addEventListener('change', function () {
+                                const entity = this.value;
+                                const criteriaContainer = document.getElementById('criteria-container');
+                                const criteriaDropdown = document.getElementById('criteria');
+
+                                // Clear existing criteria options
+                                criteriaDropdown.innerHTML = '<option value="" disabled selected>Select Criteria</option>';
+
+                                // Populate the criteria dropdown based on the selected entity
+                                if (entityCriteriaMap[entity]) {
+                                    entityCriteriaMap[entity].forEach(function (criteria) {
+                                        const option = document.createElement('option');
+                                        option.value = criteria.toLowerCase().replace(' ', '_'); // Convert to snake_case
+                                        option.textContent = criteria;
+                                        criteriaDropdown.appendChild(option);
+                                    });
+                                }
+
+                                // Show the criteria dropdown
+                                criteriaContainer.classList.remove('d-none');
+                            });
+                        </script>
+
                     </div>
-                </div>
             </nav>
             <br>
             <!-- Services Section -->
