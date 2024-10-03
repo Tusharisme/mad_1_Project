@@ -8,21 +8,20 @@
   <link rel="stylesheet" href="/static/style.css" />
   <!--calling external styles-->
   <!--third party bootstrap-->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <title>Service Details</title>
 </head>
 
 <body>
   <h1>Service Details</h1>
-  <p><strong>Service ID:</strong> {{ service.id }}</p>
-  <p><strong>Service Name:</strong> {{ service.name }}</p>
-  <p><strong>Service Price:</strong> {{ service.base_price }}</p>
-  <p><strong>Description:</strong> {{ service.description }}</p>
-  <p><strong>Time Required:</strong> {{ service.time_required }} mins</p>
+  <p><strong>Service ID:</strong> {{ service.id }} <br> <br>
+    <strong>Service Name:</strong> {{ service.name }} <br><br>
+    <strong>Service Price:</strong> {{ service.base_price }}<br><br>
+    <strong>Description:</strong> {{ service.description }}<br><br>
+    <strong>Time Required:</strong> {{ service.time_required }} mins <br><br>
+  </p>
 
-  <!-- Add a link to go back to the admin dashboard through the login route -->
-  <a href="{{ url_for('user_login') }}">Back to Dashboard</a>
+  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
 </body>
 
 </html>

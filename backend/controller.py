@@ -87,14 +87,30 @@ def admin_dashboard():
         "username" in session and session.get("role") == 0
     ):  # Check if logged in as admin
         services = fetch_all_services()
-        professionals = fetch_all_professional()
+
+        # Fetch all professionals with their full details
+        professionals = db.session.query(
+            Service_Professional
+        ).all()  # Ensure you're fetching the complete object
+
         service_requests = Service_Request.query.all()  # Fetch all service requests
+        customers = Customer.query.all()  # Fetch all customers
+
+        # Calculate the average rating for professionals
+        for professional in professionals:
+            professional_id = (
+                professional.id
+            )  # This should now correctly reference the professional object
+            professional.average_rating = update_professional_rating(
+                professional_id
+            )  # Store the average rating
 
         return render_template(
             "admin_dashboard.html",
             admin=session["username"],
             services=services,
             professionals=professionals,
+            customers=customers,
             service_requests=service_requests,  # Pass service requests to the template
         )
     else:
@@ -127,6 +143,10 @@ def search_admin():
     entity = request.args.get("entity")
     criteria = request.args.get("criteria")
     query = request.args.get("query")
+    rating_filter = request.args.get("rating")  # New field for rating
+    rating_condition = request.args.get(
+        "rating_condition"
+    )  # New field for low/high condition
 
     results = []
 
@@ -144,10 +164,22 @@ def search_admin():
                 ).all()
 
     elif entity == "professional":
-        # If no query, fetch all professionals
-        if not query:
-            results = Service_Professional.query.all()
+        # Check if query is empty and rating_filter is provided
+        if not query and rating_filter:
+            # If rating_filter is specified, filter professionals by average_rating
+            if rating_condition == "high":
+                results = Service_Professional.query.filter(
+                    Service_Professional.average_rating >= float(rating_filter)
+                ).all()
+            elif rating_condition == "low":
+                results = Service_Professional.query.filter(
+                    Service_Professional.average_rating <= float(rating_filter)
+                ).all()
+            else:
+                # If no specific rating condition is given, return all professionals
+                results = Service_Professional.query.all()
         else:
+            # If there is a query, filter based on that
             if criteria == "name":
                 results = Service_Professional.query.filter(
                     Service_Professional.name.ilike(f"%{query}%")
@@ -156,17 +188,26 @@ def search_admin():
                 results = Service_Professional.query.filter(
                     Service_Professional.experience == query
                 ).all()
-            elif criteria == "rating":
-                results = Service_Professional.query.filter(
-                    Service_Professional.rating == query
-                ).all()
+            elif (
+                criteria == "average_rating"
+            ):  # Handle average_rating with existing query
+                if rating_filter:  # Check if rating_filter is not empty
+                    if rating_condition == "high":
+                        results = Service_Professional.query.filter(
+                            Service_Professional.average_rating >= float(rating_filter)
+                        ).all()
+                    elif rating_condition == "low":
+                        results = Service_Professional.query.filter(
+                            Service_Professional.average_rating <= float(rating_filter)
+                        ).all()
+                else:
+                    # If rating_filter is empty, return all professionals
+                    results = Service_Professional.query.all()
 
     elif entity == "service_request":
-        # If no query, fetch all service requests
         if not query:
             results = Service_Request.query.all()
         else:
-
             if criteria == "customer_name":
                 results = (
                     Service_Request.query.join(Customer)
@@ -179,11 +220,9 @@ def search_admin():
                 ).all()
 
     elif entity == "customer":
-        # If no query, fetch all customers
         if not query:
             results = Customer.query.all()
         else:
-
             if criteria == "name":
                 results = Customer.query.filter(Customer.name.ilike(f"%{query}%")).all()
             elif criteria == "email":
@@ -505,13 +544,6 @@ def reject_professional(professional_id):
     return redirect(url_for("user_login"))
 
 
-# @app.route("/professional/delete/<int:professional_id>", methods=["POST"])
-# def delete_professional(professional_id):
-#     professional = Service_Professional.query.get(professional_id)
-#     if professional:
-#         db.session.delete(professional)
-#         db.session.commit()
-#     return redirect(url_for("user_login", update_dashboard=True))
 @app.route("/professional/delete/<int:professional_id>", methods=["POST"])
 def delete_professional(professional_id):
     professional = Service_Professional.query.get(professional_id)
@@ -556,19 +588,6 @@ def request_service():
         return jsonify({"message": "No professionals available for this service"}), 404
 
 
-# @app.route("/professional_dashboard", methods=["GET"])
-# def professional_dashboard():
-#     # Get professional details
-#     professional_id = session["professional_id"]
-
-#     # Fetch assigned service requests
-#     requests = Service_Request.query.filter_by(
-#         professional_id=professional_id, service_status="open"
-#     ).all()
-
-#     return render_template("professional_dashboard.html", requests=requests)
-
-
 @app.route("/api/professional/<int:professional_id>", methods=["GET"])
 def get_professional_details(professional_id):
     professional = Service_Professional.query.get(professional_id)
@@ -585,30 +604,6 @@ def get_professional_details(professional_id):
             "verified_status": professional.verified_status,
         }
     )
-
-
-# @app.route("/customer_dashboard", methods=["GET"])
-# def customer_dashboard():
-#     usr = Customer.query.filter_by(username=session.get("username")).first()
-#     if usr:
-#         # Fetch customer profile, service history, and other relevant data
-#         service_history = Service_Request.query.filter_by(customer_id=usr.id).all()
-#         profile_data = {
-#             "name": usr.name,
-#             "email": usr.email,
-#             "address": usr.address,
-#             "pin_code": usr.pin_code,
-#         }
-
-#         return render_template(
-#             "customer_dashboard.html",
-#             customer=usr.username,
-#             profile=profile_data,
-#             service_history=service_history,
-#             # Add other data needed for the customer dashboard
-#         )
-#     else:
-#         return redirect(url_for("user_login"))  # Redirect to login if not authenticated
 
 
 @app.route("/customer_dashboard")
@@ -628,6 +623,7 @@ def customer_dashboard():
 
     # Fetch all service requests for the logged-in customer (for the service history section)
     service_requests = Service_Request.query.filter_by(customer_id=customer_id).all()
+    print(service_requests)
 
     # Render the customer dashboard template with both services and service requests
     return render_template(
@@ -639,17 +635,6 @@ def customer_dashboard():
     )
 
 
-# @app.route("/services/<int:service_id>", methods=["GET"])
-# def get_service_professionals(service_id):
-#     service = Service.query.get_or_404(service_id)
-#     professionals = (
-#         Service_Professional.query.join(ProfessionalService)
-#         .filter(ProfessionalService.service_id == service_id)
-#         .all()
-#     )
-#     return render_template(
-#         "service_professionals.html", service=service, professionals=professionals
-#     )
 @app.route("/services/<int:service_id>", methods=["GET"])
 def get_service_professionals(service_id):
     service = Service.query.get_or_404(service_id)
@@ -661,7 +646,11 @@ def get_service_professionals(service_id):
             ProfessionalService,
             ProfessionalService.professional_id == Service_Professional.id,
         )
-        .filter(ProfessionalService.service_id == service_id)
+        .filter(
+            ProfessionalService.service_id == service_id,
+            Service_Professional.verified_status
+            == "approved",  # Filter for approved professionals
+        )
         .all()
     )
 
@@ -686,49 +675,13 @@ def book_service():
         )
         db.session.add(new_request)
         db.session.commit()
-        flash("Service booked successfully!")
+        flash("Service booked successfully!", "success")
         return redirect(url_for("customer_dashboard"))
     else:
-        flash("Failed to book service. Try again.")
+        flash("Failed to book service. Try again.", "danger")
         return redirect(url_for("customer_dashboard"))
 
 
-# @app.route("/search_service", methods=["POST"])
-# def search_service():
-#     search_term = request.form.get("service_name")
-
-#     # Perform a case-insensitive search for the service
-#     services = Service.query.filter(Service.name.ilike(f"%{search_term}%")).all()
-
-#     # If no services match the search term, return an empty list
-#     if not services:
-#         return render_template(
-#             "services_by_category.html",
-#             services=[],
-#             category=f"Search Results for: {search_term}",
-#         )
-
-#     # Render search results
-#     return render_template(
-#         "services_by_category.html",
-#         services=services,
-#         category=f"Search Results for: {search_term}",
-#     )
-
-
-# @app.route("/search_service", methods=["GET"])
-# def search_service():
-#     query = request.args.get("query")
-#     if query:
-#         # Perform a search on the service table
-#         services = Service.query.filter(Service.name.ilike(f"%{query}%")).all()
-#     else:
-#         services = []
-#     return render_template(
-#         "services_by_category.html",
-#         services=services,
-#         category=f"Search Results for: {query}",
-#     )
 @app.route("/search_service", methods=["GET"])
 def search_service():
     pin_code = request.args.get("pin_code")
@@ -746,13 +699,18 @@ def search_service():
         services_query = (
             services_query.join(ProfessionalService)
             .join(Service_Professional)
-            .filter(Service_Professional.pin_code == pin_code)
+            .filter(
+                Service_Professional.pin_code == pin_code,
+                Service_Professional.verified_status == "approved",
+            )
         )
 
-    if rating:
-        # Assuming you have a Service_Request model related to Service
-        services_query = services_query.join(Service_Request).filter(
-            Service_Request.rating == rating
+    if rating is not None:  # Check if rating is provided
+        # Filter professionals based on their average rating
+        services_query = (
+            services_query.join(ProfessionalService)
+            .join(Service_Professional)
+            .filter(Service_Professional.average_rating >= rating)
         )
 
     services = services_query.all()
@@ -762,23 +720,6 @@ def search_service():
     )
 
 
-# @app.route("/close_service", methods=["POST"])
-# def close_service():
-#     data = request.get_json()  # or use form data
-#     request_id = data.get("requestId")
-#     rating = data.get("serviceRating")
-#     remarks = data.get("serviceRemarks")
-
-#     service_request = Service_Request.query.get(request_id)
-#     if service_request:
-#         service_request.rating = rating  # Ensure your model has this field
-#         service_request.remarks = remarks
-#         service_request.service_status = "closed"  # Update status if needed
-#         service_request.date_of_completion = datetime.utcnow()  # Set completion date
-#         db.session.commit()  # Commit the changes
-
-
-#     return redirect(url_for("customer_dashboard"))  # Redirect to the dashboard
 @app.route("/close_service", methods=["POST"])
 def close_service():
     data = request.get_json()
@@ -898,17 +839,6 @@ def search_customers():
     )
 
 
-# @app.route("/complete_service/<int:request_id>", methods=["POST"])
-# def complete_service(request_id):
-#     service_request = Service_Request.query.get(request_id)
-#     professional_id = session["professional_id"]
-
-
-#     if service_request and service_request.professional_id == professional_id:
-#         service_request.service_status = "accepted"
-#         service_request.date_of_completion = datetime.utcnow()
-#         db.session.commit()
-#         return redirect(url_for("professional_dashboard"))
 @app.route("/complete_service/<int:request_id>", methods=["POST"])
 def complete_service(request_id):
     service_request = Service_Request.query.get(request_id)
@@ -930,31 +860,6 @@ def reject_service(request_id):
     if service_request and service_request.professional_id == professional_id:
         # db.session.delete(service_request)
         service_request.service_status = "rejected"
-        service_request.date_of_completion = datetime.utcnow()
-        db.session.commit()
-        return redirect(url_for("professional_dashboard"))
-
-
-# @app.route("/close_service_professional/<int:request_id>", methods=["POST"])
-# def close_service_professional(request_id):
-#     service_request = Service_Request.query.get(request_id)
-#     professional_id = session["professional_id"]
-
-#     if service_request and service_request.professional_id == professional_id:
-#         # Update status to 'completed' instead of 'closed'
-#         service_request.service_status = "completed"
-#         service_request.date_of_completion = datetime.utcnow()
-#         db.session.commit()
-#         return redirect(url_for("professional_dashboard"))
-
-
-@app.route("/close_service_professional/<int:request_id>", methods=["POST"])
-def close_service_professional(request_id):
-    service_request = Service_Request.query.get(request_id)
-    professional_id = session["professional_id"]
-
-    if service_request and service_request.professional_id == professional_id:
-        service_request.service_status = "closed"
         service_request.date_of_completion = datetime.utcnow()
         db.session.commit()
         return redirect(url_for("professional_dashboard"))
@@ -1354,3 +1259,129 @@ def update_customer_profile():
 
     flash("Profile updated successfully!", "success")
     return redirect(url_for("customer_profile"))
+
+
+# Route for closing the service from the professional's side
+# @app.route("/close_service_professional/<int:request_id>", methods=["POST"])
+# def close_service_professional(request_id):
+#     service_request = Service_Request.query.get(request_id)
+#     professional_id = session["professional_id"]
+
+
+#     if service_request and service_request.professional_id == professional_id:
+#         service_request.service_status = "closed"
+#         service_request.date_of_completion = datetime.utcnow()
+#         service_request.customer_rating = request.form.get("customer_rating")
+#         service_request.customer_remarks = request.form.get("customer_remarks")
+#         db.session.commit()
+#         return redirect(url_for("professional_dashboard"))
+@app.route("/close_service_professional", methods=["POST"])
+def close_service_professional():
+    data = request.get_json()
+    request_id = data.get("requestId")
+    customer_rating = data.get("customerRating")
+    customer_remark = data.get("customerRemark")
+
+    service_request = Service_Request.query.get(request_id)
+
+    if not service_request:
+        return {"message": "Service request not found"}, 404
+
+    # Store the customer rating and remarks
+    service_request.customer_rating = customer_rating
+    service_request.customer_remarks = customer_remark
+    service_request.service_status = "closed"  # Mark the service as closed
+    service_request.date_of_completion = datetime.utcnow()
+    db.session.commit()
+
+    return {"message": "Service request closed and rated successfully"}, 200
+
+
+# Route for customer to write a review after service completion
+@app.route("/rate_professional/<int:request_id>", methods=["POST"])
+def rate_professional(request_id):
+    service_request = Service_Request.query.get(request_id)
+    customer_id = session["customer_id"]
+
+    if service_request and service_request.customer_id == customer_id:
+        service_request.rating = request.form.get("service_rating")
+        service_request.remarks = request.form.get("service_remarks")
+        db.session.commit()
+        return redirect(url_for("customer_dashboard"))
+
+
+@app.route("/cancel_service/<int:service_id>", methods=["POST"])
+def cancel_service(service_id):
+    service_request = Service_Request.query.get(service_id)
+
+    if not service_request:
+        flash("Service request not found.", "danger")
+        return redirect(url_for("customer_dashboard"))
+
+    if service_request.service_status == "requested":
+        service_request.service_status = "cancelled"
+        db.session.commit()
+        flash("Service has been successfully cancelled.", "success")
+    else:
+        flash("Service cannot be cancelled at this stage.", "warning")
+
+    return redirect(url_for("customer_dashboard"))
+
+
+def update_professional_rating(professional_id):
+    # Count the number of completed service requests for the professional
+    completed_requests_count = (
+        db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "closed",
+            Service_Request.rating.isnot(
+                None
+            ),  # Only consider requests with customer ratings
+        )
+        .count()
+    )
+
+    # Calculate the average rating only if there are at least 7 completed service requests
+    if completed_requests_count >= 7:
+        average = (
+            db.session.query(func.avg(Service_Request.rating))
+            .filter(
+                Service_Request.professional_id == professional_id,
+                Service_Request.service_status == "closed",
+                Service_Request.rating.isnot(
+                    None
+                ),  # Only consider requests with customer ratings
+            )
+            .scalar()
+        )
+        average = round(average, 1) if average is not None else 0.0
+        # Update the professional's average rating in the database
+        professional = Service_Professional.query.get(professional_id)
+        if professional:
+            professional.average_rating = average
+            db.session.commit()
+
+    else:
+        # If less than 7 service requests, set the average rating to None
+        professional = Service_Professional.query.get(professional_id)
+        if professional:
+            professional.average_rating = None
+            db.session.commit()
+
+    return professional.average_rating  # Return the updated average rating
+
+
+@app.route("/block_customer/<int:customer_id>", methods=["POST"])
+def block_customer(customer_id):
+    customer = Customer.query.get_or_404(customer_id)
+    customer.is_blocked = True  # Set the is_blocked field to True
+    db.session.commit()
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/unblock_customer/<int:customer_id>", methods=["POST"])
+def unblock_customer(customer_id):
+    customer = Customer.query.get_or_404(customer_id)
+    customer.is_blocked = False  # Set the is_blocked field to False
+    db.session.commit()
+    return redirect(url_for('admin_dashboard'))

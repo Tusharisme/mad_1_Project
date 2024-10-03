@@ -53,10 +53,6 @@
   /* Margin-bottom in viewport units  1vh*/
 }
 
-a {
-  color: black;
-}
-
 .chart-container {
   display: flex;
   justify-content: space-around;
@@ -67,4 +63,11 @@ canvas {
   max-width: 400px; /* Max width for the charts */
   max-height: 400px; /* Increase max height for the charts */
   height: 400px; /* Set an explicit height */
+}
+
+.card {
+  border: 2px solid #810a0a !important; /* Darker border color */
+  height: auto;
+  width: auto;
+  color: #7f0c0c;
 }

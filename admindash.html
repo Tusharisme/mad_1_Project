@@ -1,3 +1,492 @@
+professionanal dash
+<!-- Professional Dashboard -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Professional Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+</head>
+
+<body>
+    <div id="container">
+        <div id="panel">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+                    <label>Welcome {{ professional }}</label>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="#">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('professional_summary') }}">Summary</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('professional_profile') }}">Profile</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Logout</a>
+                            </li>
+                        </ul>
+                        <form class="d-flex" action="{{ url_for('search_customers') }}" method="GET">
+                            <select class="form-select me-2" name="pin_code" id="pin_code">
+                                <option value="" disabled selected>Select Pin Code</option>
+                                {% for pin in pin_codes %}
+                                <option value="{{ pin }}">{{ pin }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="text" class="form-control me-2" placeholder="Customer Name"
+                                name="customer_name" />
+                            <input type="date" class="form-control me-2" name="date" />
+                            <button class="btn btn-outline-success" type="submit">Search</button>
+                        </form>
+
+
+
+                    </div>
+                </div>
+            </nav>
+
+            <h2>Today's Services</h2>
+            {% if today_services %}
+            <table class="table table-info table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Customer Name</th>
+                        <th>Contact Phone</th>
+                        <th>Location (with pin code)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in today_services %}
+                    <tr>
+                        <td>{{ request.id }}</td>
+                        <td>{{ request.customer.name }}</td>
+                        <td>{{ request.customer.phone_no }}</td>
+                        <td>{{ request.customer.address ~ ', ' ~ request.customer.pin_code }}</td>
+                        <td>
+                            <!-- If status is ongoing, show "Ongoing" label and remove the Close button -->
+                            {% if request.service_status == 'ongoing' %}
+                            <span>Ongoing</span>
+
+                            <!-- If status is requested, show Accept/Reject buttons -->
+                            {% elif request.service_status == 'requested' %}
+                            <form action="{{ url_for('complete_service', request_id=request.id) }}"
+                                style="display:inline;" method="POST">
+                                <button type="submit">Accept</button>
+                            </form>
+                            <form action="{{ url_for('reject_service', request_id=request.id) }}"
+                                style="display:inline;" method="POST">
+                                <button type="submit">Reject</button>
+                            </form>
+                            {% elif request.service_status == "closed" %}
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                                data-bs-target="#rateCustomerModal" data-id="{{ service.id }}">
+                                Rate Customer
+                            </button>
+                            {% endif %}
+
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <!-- Modal for Rating the Customer -->
+                    <div class="modal fade" id="rateCustomerModal" tabindex="-1"
+                        aria-labelledby="rateCustomerModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="rateCustomerModalLabel">Rate Customer</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="rateCustomerForm" action="{{ url_for('rate_customer') }}" method="POST">
+                                        <input type="hidden" name="service_id" id="service_id">
+                                        <label for="customer_rating">Rating (1-5):</label>
+                                        <input type="number" name="customer_rating" min="1" max="5" required>
+                                        <label for="customer_remarks">Remarks:</label>
+                                        <textarea name="customer_remarks"></textarea>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary" form="rateCustomerForm">Submit
+                                        Rating</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </tbody>
+            </table>
+            {% else %}
+            <p>No services for today.</p>
+            {% endif %}
+
+            <!-- Closed Services Section -->
+            <h4>Closed Services</h4>
+            {% if closed_services %}
+            <table class="table table-info table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Customer Name</th>
+                        <th>Contact</th>
+                        <th>Location (with pin code)</th>
+                        <th>Closing Date</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for closed_service in closed_services %}
+                    <tr>
+                        <td>{{ closed_service.id }}</td>
+                        <td>{{ closed_service.customer.name }}</td>
+                        <td>{{ closed_service.customer.phone_no }}</td>
+                        <td>{{ closed_service.customer.address ~ ','~ closed_service.customer.pin_code}}</td>
+                        <td>{{ closed_service.date_of_completion.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ closed_service.rating }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No closed services yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+</html>
+
+
+customer Dashboard
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Customer Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+    <div id="container">
+        <div id="panel">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+                    <label>Welcome {{ customer }}</label>
+
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="#">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('customer_summary') }}">Summary</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('customer_profile') }}">Profile</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Logout</a>
+                            </li>
+                        </ul>
+                        <form class="d-flex" action="{{ url_for('search_service') }}" method="GET">
+                            <select class="form-select me-2" name="pin_code" id="pin_code">
+                                <option value="" disabled selected>Select Pin Code</option>
+                                {% for pin in pin_codes %}
+                                <option value="{{ pin }}">{{ pin }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <select class="form-select me-2" name="rating" id="rating">
+                                <option value="" disabled selected>Select Rating</option>
+                                <option value="1">1 Star</option>
+                                <option value="2">2 Stars</option>
+                                <option value="3">3 Stars</option>
+                                <option value="4">4 Stars</option>
+                                <option value="5">5 Stars</option>
+                            </select>
+                            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search"
+                                name="query" />
+                            <button class="btn btn-outline-success" type="submit">Search</button>
+                        </form>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Service Categories -->
+            <h4 class="mt-4">Service Categories</h4>
+            <div class="row">
+                {% for service in services %}
+                <div class="col-md-3 mb-3">
+                    <a href="{{ url_for('get_service_professionals', service_id=service.id) }}"
+                        class="btn btn-primary btn-block">
+                        {{ service.name }}
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="container mt-2">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+            <!-- Service History Table -->
+            <h4 class="mt-4">Service History</h4>
+            <table class="table table-info table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Service Name</th>
+                        <th>Professional Name</th>
+                        <th>Phone No.</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in service_requests %}
+                    <tr>
+                        <td>{{ request.id }}</td>
+                        <td>{{ request.service.name }}</td>
+                        <td>{{ request.professional.name }}</td>
+                        <td>{{ request.professional.phone_no }}</td>
+                        <td style="color: orangered;">
+                            {{ request.service_status }}
+                            {% if request.service_status == 'ongoing' %}
+                            <!-- <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#closeServiceModal" data-id="{{ request.id }}"
+                                data-service-name="{{ request.service.name }}"
+                                data-professional-name="{{ request.professional.name }}"
+                                data-professional-id="{{ request.professional.id }}"
+                                data-description="{{ request.service.description }}">
+                                Close It?
+                            </button> -->
+
+                            {% endif %}
+                            {% if request.service_status == "requested" %}
+                            <!-- Cancel Button with Confirmation -->
+                            <form action="{{ url_for('cancel_service', service_id=request.id) }}" method="POST"
+                                style="display:inline-block;">
+                                <button type="button" class="btn btn-danger" onclick="confirmCancel(this)">Cancel
+                                    Service</button>
+                            </form>
+                            {% endif %}
+                            {% if request.service_status == "closed" %}
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#closeServiceModal" data-id="{{ request.id }}"
+                                data-service-name="{{ request.service.name }}"
+                                data-professional-name="{{ request.professional.name }}"
+                                data-professional-id="{{ request.professional.id }}"
+                                data-description="{{ request.service.description }}">
+                                Write a Review
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- JavaScript to Show Confirmation Before Cancel -->
+            <script>
+                function confirmCancel(button) {
+                    if (confirm("Are you sure you want to cancel this service?")) {
+                        button.closest("form").submit();
+                    }
+                }
+            </script>
+
+
+            <!-- Close Service Modal -->
+            <div class="modal fade" id="closeServiceModal" tabindex="-1" role="dialog"
+                aria-labelledby="closeServiceModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="closeServiceModalLabel">Close Service Request</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>Service Name:</strong> <span id="modalServiceName"></span></p>
+                            <p><strong>Description:</strong> <span id="modalDescription"></span></p>
+                            <p><strong>Professional Name:</strong> <span id="modalProfessionalName"></span></p>
+                            <p><strong>Professional ID:</strong> <span id="modalProfessionalId"></span></p>
+                            <div class="form-group">
+                                <label for="serviceRating">Service Rating:(1 to 5)</label>
+                                <input type="number" class="form-control" id="serviceRating" min="1" max="5" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="serviceRemarks">Remarks:</label>
+                                <textarea class="form-control" id="serviceRemarks" rows="3" required></textarea>
+                            </div>
+                            <input type="hidden" id="requestId" value="">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" id="submitCloseService">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    $('#closeServiceModal').on('show.bs.modal', function (event) {
+                        var button = $(event.relatedTarget);
+                        var requestId = button.data('id');
+                        var serviceName = button.data('service-name');
+                        var professionalName = button.data('professional-name');
+                        var professionalId = button.data('professional-id');
+                        var description = button.data('description');
+
+                        var modal = $(this);
+                        modal.find('#modalServiceName').text(serviceName);
+                        modal.find('#modalDescription').text(description);
+                        modal.find('#modalProfessionalName').text(professionalName);
+                        modal.find('#modalProfessionalId').text(professionalId);
+                        modal.find('#requestId').val(requestId);
+                    });
+
+                    document.getElementById('submitCloseService').addEventListener('click', function () {
+                        const rating = document.getElementById('serviceRating').value;
+                        const remarks = document.getElementById('serviceRemarks').value;
+                        const requestId = document.getElementById('requestId').value;
+
+                        fetch('/close_service', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                requestId: requestId,
+                                serviceRating: rating,
+                                serviceRemarks: remarks
+                            }),
+                        })
+                            .then(response => {
+                                if (response.redirected) {
+                                    window.location.href = response.url; // Redirect on success
+                                } else {
+                                    alert('Give correct value ');
+                                }
+                            })
+                            .catch(error => console.error('Error:', error));
+                    });
+                });
+            </script>
+        </div>
+    </div>
+</body>
+
+</html>
+
+<div class="modal fade" id="closeServiceModal" tabindex="-1" role="dialog" aria-labelledby="closeServiceModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="closeServiceModalLabel">Close Service Request
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="closeServiceForm" action="{{ url_for('close_service_professional', request_id=request.id) }}"
+                    method="POST">
+                    <label for="customerRating">Rate Customer (1 to 5):</label>
+                    <input type="number" name="customer_rating" id="customerRating" class="form-control" min="1" max="5"
+                        required>
+
+                    <label for="customerRemarks">Remarks:</label>
+                    <textarea name="customer_remarks" id="customerRemarks" class="form-control" required></textarea>
+
+                    <button type="submit" class="btn btn-primary mt-3">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        $('#closeServiceModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var requestId = button.data('id');
+            var serviceName = button.data('service-name');
+            var customerName = button.data('professional-name');
+            var customerId = button.data('professional-id');
+            var customerAddress = button.data('description');
+
+            var modal = $(this);
+            modal.find('#modalServiceName').text(serviceName);
+            modal.find('#modalAddress').text(customerAddress);
+            modal.find('#modalCustomerName').text(customerName);
+            modal.find('#modalCustomerId').text(customerId);
+            modal.find('#requestId').val(requestId);
+        });
+
+        document.getElementById('submitCloseService').addEventListener('click', function () {
+            const rating = document.getElementById('customerRating').value;
+            const remarks = document.getElementById('customerRemark').value;
+            const requestId = document.getElementById('requestId').value;
+
+            fetch('/close_service', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    requestId: requestId,
+                    customerRating: rating,
+                    customerRemark: remarks
+                }),
+            })
+                .then(response => {
+                    if (response.redirected) {
+                        window.location.href = response.url; // Redirect on success
+                    } else {
+                        alert('Give correct value ');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    });
+</script>
+
+
+<button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#closeServiceModal"
+    data-id="{{ request.id }}">Close It</button>
+
+
+admin Dashboard 
 <!DOCTYPE html>
 <html lang="en">
 
@@ -37,12 +526,61 @@
                                     Out</a>
                             </li>
                         </ul>
-                        <!-- Search form -->
-                        <form class="d-flex">
-                            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
+                        <form class="d-flex" action="{{ url_for('search_admin') }}" method="GET">
+                            <!-- Dropdown to select entity (Service, Professional, etc.) -->
+                            <select class="form-select me-2" name="entity" id="entity" required>
+                                <option value="" disabled selected>Select Entity</option>
+                                <option value="service">Service</option>
+                                <option value="professional">Professional</option>
+                                <option value="service_request">Service Request</option>
+                                <option value="customer">Customer</option>
+                            </select>
+
+                            <!-- Dropdown to select criteria (optional) -->
+                            <select class="form-select me-2" name="criteria" id="criteria">
+                                <option value="" disabled selected>Select Criteria</option>
+                                <!-- Criteria will be dynamically updated based on entity selection -->
+                            </select>
+
+                            <!-- Search input (optional) -->
+                            <input class="form-control me-2" type="text" placeholder="Search" name="query" />
+
+                            <button class="btn btn-outline-success" type="submit">Search</button>
                         </form>
+
+
+                        <script>
+                            const entityCriteriaMap = {
+                                'service': ['Name', 'Base Price', 'Description'],
+                                'professional': ['Name', 'Experience', 'Rating'],
+                                'service_request': ['Customer Name', 'Service Status'],
+                                'customer': ['Name', 'Email', 'Phone']
+                            };
+
+                            document.getElementById('entity').addEventListener('change', function () {
+                                const entity = this.value;
+                                const criteriaContainer = document.getElementById('criteria-container');
+                                const criteriaDropdown = document.getElementById('criteria');
+
+                                // Clear existing criteria options
+                                criteriaDropdown.innerHTML = '<option value="" disabled selected>Select Criteria</option>';
+
+                                // Populate the criteria dropdown based on the selected entity
+                                if (entityCriteriaMap[entity]) {
+                                    entityCriteriaMap[entity].forEach(function (criteria) {
+                                        const option = document.createElement('option');
+                                        option.value = criteria.toLowerCase().replace(' ', '_'); // Convert to snake_case
+                                        option.textContent = criteria;
+                                        criteriaDropdown.appendChild(option);
+                                    });
+                                }
+
+                                // Show the criteria dropdown
+                                criteriaContainer.classList.remove('d-none');
+                            });
+                        </script>
+
                     </div>
-                </div>
             </nav>
             <br>
             <!-- Services Section -->
@@ -314,6 +852,377 @@
             <h3>No service requests available</h3>
             {% endif %}
 
+        </div>
+    </div>
+</body>
+
+</html>
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard</title>
+    <!-- Include Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Your custom CSS -->
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <!-- Include Bootstrap JS and Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"></script>
+
+    <div id="container">
+        <div id="panel">
+            <!-- Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
+                <div class="container-fluid">
+                    <label>Welcome {{ admin }}</label>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="#">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('admin_summary') }}">Summary</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Log
+                                    Out</a>
+                            </li>
+                        </ul>
+                        <form class="d-flex" action="{{ url_for('search_admin') }}" method="GET">
+                            <!-- Dropdown to select entity (Service, Professional, etc.) -->
+                            <select class="form-select me-2" name="entity" id="entity" required>
+                                <option value="" disabled selected>Select Entity</option>
+                                <option value="service">Service</option>
+                                <option value="professional">Professional</option>
+                                <option value="service_request">Service Request</option>
+                                <option value="customer">Customer</option>
+                            </select>
+
+                            <!-- Dropdown to select criteria (optional) -->
+                            <select class="form-select me-2" name="criteria" id="criteria">
+                                <option value="" disabled selected>Select Criteria</option>
+                            </select>
+                            <!-- New section for rating filtering -->
+                            <div class="input-group me-2">
+                                <input type="number" class="form-control" name="rating" placeholder="Average Rating"
+                                    min="1" max="5" />
+                                <select class="form-select" name="rating_condition">
+                                    <option value="high">Above or Equal</option>
+                                    <option value="low">Below or Equal</option>
+                                </select>
+                            </div>
+
+                            <!-- Search input (optional) -->
+                            <input class="form-control me-2" type="text" placeholder="Search" name="query" />
+
+                            <button class="btn btn-outline-success" type="submit">Search</button>
+                        </form>
+
+                        <script>
+                            const entityCriteriaMap = {
+                                'service': ['Name', 'Base Price', 'Description'],
+                                'professional': ['Name', 'Experience', 'Average Rating'],  // Updated to Average Rating
+                                'service_request': ['Customer Name', 'Service Status'],
+                                'customer': ['Name', 'Email', 'Phone']
+                            };
+
+                            document.getElementById('entity').addEventListener('change', function () {
+                                const entity = this.value;
+                                const criteriaDropdown = document.getElementById('criteria');
+
+                                // Clear existing criteria options
+                                criteriaDropdown.innerHTML = '<option value="" disabled selected>Select Criteria</option>';
+
+                                // Populate the criteria dropdown based on the selected entity
+                                if (entityCriteriaMap[entity]) {
+                                    entityCriteriaMap[entity].forEach(function (criteria) {
+                                        const option = document.createElement('option');
+                                        option.value = criteria.toLowerCase().replace(' ', '_'); // Convert to snake_case
+                                        option.textContent = criteria;
+                                        criteriaDropdown.appendChild(option);
+                                    });
+                                }
+                            });
+                        </script>
+                    </div>
+                </div>
+            </nav>
+            <br>
+
+            <!-- Services Section -->
+            <h4>Services</h4>
+            {% if services %}
+            <table class="table table-info table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Service Name</th>
+                        <th scope="col">Base Price</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key, value in services.items() %}
+                    <tr>
+                        <td><a href="{{ url_for('service_details', service_id=key) }}">{{ key }}</a></td>
+                        <td>{{ value[0] }}</td>
+                        <td>{{ value[1] }}</td>
+                        <td>
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                                data-bs-target="#editServiceModal" data-id="{{ key }}" data-name="{{ value[0] }}"
+                                data-description="{{ value[2] }}" data-price="{{ value[1] }}">Edit</button>
+                            <b>||</b>
+                            <form action="{{ url_for('delete_service', service_id=key) }}" method="POST"
+                                style="display:inline;">
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <h3>No services available</h3>
+            {% endif %}
+            <br>
+
+            <!-- Button to trigger modal -->
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addServiceModal">
+                Add New Service
+            </button>
+            <!-- Modal for adding a new service -->
+            <form action="/services/add" method="POST">
+                <div class="modal fade" id="addServiceModal" tabindex="-1" aria-labelledby="addServiceModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addServiceModalLabel">Add New Service</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label for="service_name" class="form-label"><b>Service Name</b></label>
+                                <input type="text" class="form-control" name="service_name" id="service_name" />
+                                <label for="description" class="form-label"><b>Description</b></label>
+                                <input type="text" name="description" class="form-control" id="description" />
+                                <label for="base_price" class="form-label"><b>Base Price</b></label>
+                                <input type="text" class="form-control" name="base_price" id="base_price" />
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary">Add Service</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Modal for editing a service -->
+            <form id="editServiceForm" action="" method="POST">
+                <div class="modal fade" id="editServiceModal" tabindex="-1" aria-labelledby="editServiceModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editServiceModalLabel">Edit Service</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label for="edit_service_name" class="form-label"><b>Service Name</b></label>
+                                <input type="text" class="form-control" name="service_name" id="edit_service_name" />
+                                <label for="edit_description" class="form-label"><b>Description</b></label>
+                                <input type="text" name="description" class="form-control" id="edit_description" />
+                                <label for="edit_base_price" class="form-label"><b>Base Price</b></label>
+                                <input type="text" class="form-control" name="base_price" id="edit_base_price" />
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <script>
+                // Get modal element
+                var editServiceModal = document.getElementById('editServiceModal');
+
+                // Add an event listener to trigger when the modal is shown
+                editServiceModal.addEventListener('show.bs.modal', function (event) {
+                    // Button that triggered the modal
+                    var button = event.relatedTarget;
+
+                    // Extract info from data-* attributes
+                    var serviceId = button.getAttribute('data-id');
+                    var serviceName = button.getAttribute('data-name');
+                    var serviceDescription = button.getAttribute('data-description');
+                    var servicePrice = button.getAttribute('data-price');
+
+                    // Update the form action to include the service ID
+                    var form = document.getElementById('editServiceForm');
+                    form.action = '/services/edit/' + serviceId;
+
+                    // Update the modal's content with current service data
+                    document.getElementById('edit_service_name').value = serviceName;
+                    document.getElementById('edit_description').value = serviceDescription;
+                    document.getElementById('edit_base_price').value = servicePrice;
+                });
+            </script>
+
+            <!-- Professionals Section -->
+            <h4>Professionals</h4>
+            {% if professionals %}
+            <table class="table table-info table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Experience (Years)</th>
+                        <th scope="col">Average Rating</th> <!-- Added Average Rating Column -->
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for professional in professionals %}
+                    <tr>
+                        <td><a href="{{ url_for('professional_details', professional_id=professional.id) }}">{{
+                                professional.id }}</a></td>
+                        <td>{{ professional.name }}</td>
+                        <td>{{ professional.experience }}</td>
+                        <td>{{ professional.average_rating or 'N/A' }}</td> <!-- Display Average Rating -->
+                        <td>
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                                data-bs-target="#approveRejectModal" data-id="{{ professional.id }}"
+                                data-action="approve">
+                                Approve
+                            </button>
+                            <b>||</b>
+                            <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                                data-bs-target="#approveRejectModal" data-id="{{ professional.id }}"
+                                data-action="reject">
+                                Reject
+                            </button>
+                            <b>||</b>
+                            <form action="{{ url_for('delete_professional', professional_id=professional.id) }}"
+                                method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <h3>No professionals available</h3>
+            {% endif %}
+
+            <br>
+
+            <!-- Approve/Reject Professional Modal -->
+            <form id="approveRejectForm" action="" method="POST">
+                <div class="modal fade" id="approveRejectModal" tabindex="-1" aria-labelledby="approveRejectModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="approveRejectModalLabel">Professional Approval/Rejection
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p><b>Professional Name:</b> <span id="professional_name"></span></p>
+                                <p><b>Experience:</b> <span id="professional_experience"></span> years</p>
+                                <p><b>Service:</b> <span id="professional_service"></span></p>
+                                <p><b>Address:</b> <span id="professional_address"></span></p>
+                                <p><b>Pincode:</b> <span id="professional_pincode"></span></p>
+                                <p><b>Verified Status:</b> <span id="professional_vstatus"></span></p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary" id="action_button">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <script>
+                // Get modal element for approving/rejecting professionals
+                var approveRejectModal = document.getElementById('approveRejectModal');
+
+                // Add an event listener to trigger when the modal is shown
+                approveRejectModal.addEventListener('show.bs.modal', function (event) {
+                    // Button that triggered the modal
+                    var button = event.relatedTarget;
+
+                    // Extract professional ID from the data-id attribute
+                    var professionalId = button.getAttribute('data-id');
+                    var action = button.getAttribute('data-action');
+
+                    // Fetch professional details from the API
+                    fetch('/api/professional/' + professionalId)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Populate modal with the fetched data
+                            document.getElementById('professional_name').textContent = data.name;
+                            document.getElementById('professional_experience').textContent = data.experience;
+                            document.getElementById('professional_service').textContent = data.service_type;
+                            document.getElementById('professional_address').textContent = data.address;
+                            document.getElementById('professional_pincode').textContent = data.pin_code;
+                            document.getElementById('professional_vstatus').textContent = data.verified_status;
+
+                            // Set form action and button label
+                            var form = document.getElementById('approveRejectForm');
+                            form.action = '/professional/' + action + '/' + professionalId;
+                        })
+                        .catch(error => {
+                            console.error('Error fetching professional details:', error);
+                        });
+                });
+            </script>
+
+            <!-- Service Requests Section -->
+            <h4>Service Requests</h4>
+            {% if service_requests %}
+            <table class="table table-info table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Request ID</th>
+                        <th scope="col">Customer ID</th>
+                        <th scope="col">Service ID</th>
+                        <th scope="col">Professional ID</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Date of Request</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in service_requests %}
+                    <tr>
+                        <td>{{ request.id }}</td>
+                        <td>{{ request.customer_id }}</td>
+                        <td>{{ request.service_id }}</td>
+                        <td>{{ request.professional_id }}</td>
+                        <td>{{ request.service_status }}</td>
+                        <td>{{ request.date_of_request }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <h3>No service requests available</h3>
+            {% endif %}
         </div>
     </div>
 </body>

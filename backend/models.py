@@ -1,4 +1,3 @@
-# from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
@@ -18,6 +17,10 @@ class Customer(db.Model):
     role = db.Column(
         db.Integer, nullable=False, default=1
     )  # 0 for admin, 1 for customer
+    average_rating = db.Column(db.Float, nullable=True)  # New column for average rating
+    is_blocked = db.Column(
+        db.Boolean, default=False
+    )  # New column to track block status
 
 
 class Service_Professional(db.Model):
@@ -35,6 +38,7 @@ class Service_Professional(db.Model):
     address = db.Column(db.String, nullable=False)
     pin_code = db.Column(db.String, nullable=False)
     verified_status = db.Column(db.String, nullable=True)
+    average_rating = db.Column(db.Float, nullable=True)  # New column for average rating
     document = db.Column(db.String, nullable=True)  # Column to store document path
 
     # Relationship with ProfessionalService (custom services per professional)
@@ -99,8 +103,14 @@ class Service_Request(db.Model):
     service_status = db.Column(
         db.String, nullable=False
     )  # e.g., 'requested', 'assigned', 'closed'
-    remarks = db.Column(db.String)
+    remarks = db.Column(db.String, nullable=True)  # ratings given by customer
     rating = db.Column(db.Integer, nullable=True)  # Added this line for the rating
+    customer_rating = db.Column(
+        db.Integer, nullable=True
+    )  # Rating given by professional
+    customer_remarks = db.Column(
+        db.String, nullable=True
+    )  # Remarks from the professional
 
     service = db.relationship(
         "Service",

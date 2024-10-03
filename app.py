@@ -1,6 +1,6 @@
 from flask import Flask
 from backend.models import *  # Importing the db instance from models
-from backend.api_controller import api  # Importing the api controller (if necessary)
+# from backend.api_controller import api  # Importing the api controller (if necessary)
 
 app = None  # initially None
 
@@ -22,7 +22,7 @@ def init_app():
 
     service_app.app_context().push()  # Push the app context for use in other modules
     db.init_app(service_app)  # Initialize the db object
-    api.init_app(service_app)  # Initialize API if needed
+    # api.init_app(service_app)  # Initialize API if needed
 
     print("Service application started....")
     return service_app

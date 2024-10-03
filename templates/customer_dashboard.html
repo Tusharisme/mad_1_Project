@@ -22,7 +22,8 @@
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                             <li class="nav-item">
-                                <a class="nav-link active" aria-current="page" href="#">Home</a>
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('customer_dashboard') }}">Home</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link active" aria-current="page"
@@ -72,6 +73,18 @@
                 </div>
                 {% endfor %}
             </div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="container mt-2">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
 
             <!-- Service History Table -->
             <h4 class="mt-4">Service History</h4>
@@ -83,6 +96,7 @@
                         <th>Professional Name</th>
                         <th>Phone No.</th>
                         <th>Status</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -92,17 +106,112 @@
                         <td>{{ request.service.name }}</td>
                         <td>{{ request.professional.name }}</td>
                         <td>{{ request.professional.phone_no }}</td>
-                        <td style="color: orangered;">
-                            {{ request.service_status }}
-                            {% if request.service_status == 'requested' or request.service_status == 'ongoing'%}
+                        <td>{{ request.service_status }}</td>
+                        <td>
+                            {% if request.service_status == 'requested' %}
+                            <!-- Cancel Button -->
+                            <form action="{{ url_for('cancel_service', service_id=request.id) }}" method="POST"
+                                style="display:inline-block;">
+                                <button type="button" class="btn btn-danger btn-sm" onclick="confirmCancel(this)">
+                                    Cancel Service
+                                </button>
+                            </form>
+                            {% elif request.service_status == 'closed' and not request.rating %}
+                            <!-- Review Button (after service is closed) -->
                             <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                 data-bs-target="#closeServiceModal" data-id="{{ request.id }}"
                                 data-service-name="{{ request.service.name }}"
                                 data-professional-name="{{ request.professional.name }}"
                                 data-professional-id="{{ request.professional.id }}"
                                 data-description="{{ request.service.description }}">
-                                Close It?
+                                Write a Review
                             </button>
+
+                            <!-- Modal for customer review -->
+                            <div class="modal fade" id="closeServiceModal" tabindex="-1" role="dialog"
+                                aria-labelledby="closeServiceModalLabel" aria-hidden="true">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="closeServiceModalLabel">Close Service Request
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p><strong>Service Name:</strong> <span id="modalServiceName"></span></p>
+                                            <p><strong>Description:</strong> <span id="modalDescription"></span></p>
+                                            <p><strong>Professional Name:</strong> <span
+                                                    id="modalProfessionalName"></span></p>
+                                            <p><strong>Professional ID:</strong> <span id="modalProfessionalId"></span>
+                                            </p>
+                                            <div class="form-group">
+                                                <label for="serviceRating">Service Rating:(1 to 5)</label>
+                                                <input type="number" class="form-control" id="serviceRating" min="1"
+                                                    max="5" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="serviceRemarks">Remarks:</label>
+                                                <textarea class="form-control" id="serviceRemarks" rows="3"
+                                                    required></textarea>
+                                            </div>
+                                            <input type="hidden" id="requestId" value="">
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary"
+                                                data-bs-dismiss="modal">Close</button>
+                                            <button type="button" class="btn btn-primary"
+                                                id="submitCloseService">Submit</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function () {
+                                    $('#closeServiceModal').on('show.bs.modal', function (event) {
+                                        var button = $(event.relatedTarget);
+                                        var requestId = button.data('id');
+                                        var serviceName = button.data('service-name');
+                                        var professionalName = button.data('professional-name');
+                                        var professionalId = button.data('professional-id');
+                                        var description = button.data('description');
+
+                                        var modal = $(this);
+                                        modal.find('#modalServiceName').text(serviceName);
+                                        modal.find('#modalDescription').text(description);
+                                        modal.find('#modalProfessionalName').text(professionalName);
+                                        modal.find('#modalProfessionalId').text(professionalId);
+                                        modal.find('#requestId').val(requestId);
+                                    });
+
+                                    document.getElementById('submitCloseService').addEventListener('click', function () {
+                                        const rating = document.getElementById('serviceRating').value;
+                                        const remarks = document.getElementById('serviceRemarks').value;
+                                        const requestId = document.getElementById('requestId').value;
+
+                                        fetch('/close_service', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                                requestId: requestId,
+                                                serviceRating: rating,
+                                                serviceRemarks: remarks
+                                            }),
+                                        })
+                                            .then(response => {
+                                                if (response.redirected) {
+                                                    window.location.href = response.url; // Redirect on success
+                                                } else {
+                                                    alert('Give correct value ');
+                                                }
+                                            })
+                                            .catch(error => console.error('Error:', error));
+                                    });
+                                });
+                            </script>
                             {% endif %}
                         </td>
                     </tr>
@@ -110,82 +219,13 @@
                 </tbody>
             </table>
 
-            <!-- Close Service Modal -->
-            <div class="modal fade" id="closeServiceModal" tabindex="-1" role="dialog"
-                aria-labelledby="closeServiceModalLabel" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="closeServiceModalLabel">Close Service Request</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p><strong>Service Name:</strong> <span id="modalServiceName"></span></p>
-                            <p><strong>Description:</strong> <span id="modalDescription"></span></p>
-                            <p><strong>Professional Name:</strong> <span id="modalProfessionalName"></span></p>
-                            <p><strong>Professional ID:</strong> <span id="modalProfessionalId"></span></p>
-                            <div class="form-group">
-                                <label for="serviceRating">Service Rating:(1 to 5)</label>
-                                <input type="number" class="form-control" id="serviceRating" min="1" max="5" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="serviceRemarks">Remarks:</label>
-                                <textarea class="form-control" id="serviceRemarks" rows="3" required></textarea>
-                            </div>
-                            <input type="hidden" id="requestId" value="">
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" id="submitCloseService">Submit</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            <!-- JavaScript to Show Confirmation Before Cancel -->
             <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    $('#closeServiceModal').on('show.bs.modal', function (event) {
-                        var button = $(event.relatedTarget);
-                        var requestId = button.data('id');
-                        var serviceName = button.data('service-name');
-                        var professionalName = button.data('professional-name');
-                        var professionalId = button.data('professional-id');
-                        var description = button.data('description');
-
-                        var modal = $(this);
-                        modal.find('#modalServiceName').text(serviceName);
-                        modal.find('#modalDescription').text(description);
-                        modal.find('#modalProfessionalName').text(professionalName);
-                        modal.find('#modalProfessionalId').text(professionalId);
-                        modal.find('#requestId').val(requestId);
-                    });
-
-                    document.getElementById('submitCloseService').addEventListener('click', function () {
-                        const rating = document.getElementById('serviceRating').value;
-                        const remarks = document.getElementById('serviceRemarks').value;
-                        const requestId = document.getElementById('requestId').value;
-
-                        fetch('/close_service', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                requestId: requestId,
-                                serviceRating: rating,
-                                serviceRemarks: remarks
-                            }),
-                        })
-                            .then(response => {
-                                if (response.redirected) {
-                                    window.location.href = response.url; // Redirect on success
-                                } else {
-                                    alert('Give correct value ');
-                                }
-                            })
-                            .catch(error => console.error('Error:', error));
-                    });
-                });
+                function confirmCancel(button) {
+                    if (confirm("Are you sure you want to cancel this service?")) {
+                        button.closest("form").submit();
+                    }
+                }
             </script>
         </div>
     </div>
