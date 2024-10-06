@@ -46,15 +46,15 @@
                             {% if professional_service.custom_time_required %}
                             {{ professional_service.custom_time_required }} mins
                             {% else %}
-                            {{ service.base_time_required  }} hours
+                            {{ service.base_time_required }} hours
                             {% endif %}
                         </p>
 
-                        <form action="{{ url_for('book_service') }}" method="POST">
-                            <input type="hidden" name="service_id" value="{{ service.id }}">
-                            <input type="hidden" name="professional_id" value="{{ professional.id }}">
-                            <button type="submit" class="btn btn-info">Book Service</button>
-                        </form>
+                        <!-- Button to trigger booking modal -->
+                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#bookingModal"
+                            data-service-id="{{ service.id }}" data-professional-id="{{ professional.id }}">
+                            Book Service
+                        </button>
                     </div>
                 </div>
             </div>
@@ -66,6 +66,52 @@
         <br><br>
         <a href="{{ url_for('customer_dashboard') }}" class="btn btn-secondary mt-3">Back to Services</a>
     </div>
+
+    <!-- Booking Modal for Selecting Date and Time -->
+    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookingModalLabel">Book Service</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bookingForm" action="{{ url_for('book_service') }}" method="POST">
+                        <input type="hidden" id="serviceIdInput" name="service_id" value="">
+                        <input type="hidden" id="professionalIdInput" name="professional_id" value="">
+
+                        <div class="mb-3">
+                            <label for="serviceDate" class="form-label">Select Date</label>
+                            <input type="date" class="form-control" id="serviceDate" name="requested_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="serviceTime" class="form-label">Select Time</label>
+                            <input type="time" class="form-control" id="serviceTime" name="requested_time" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Confirm Booking</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script to handle modal form data -->
+    <script>
+        var bookingModal = document.getElementById('bookingModal');
+        bookingModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var serviceId = button.getAttribute('data-service-id');
+            var professionalId = button.getAttribute('data-professional-id');
+
+            var serviceInput = document.getElementById('serviceIdInput');
+            var professionalInput = document.getElementById('professionalIdInput');
+
+            serviceInput.value = serviceId;
+            professionalInput.value = professionalId;
+        });
+    </script>
 </body>
 
 </html>

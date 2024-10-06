@@ -49,7 +49,6 @@
                             <input type="date" class="form-control me-2" name="date" />
                             <button class="btn btn-outline-success" type="submit">Search</button>
                         </form>
-
                     </div>
                 </div>
             </nav>
@@ -98,117 +97,27 @@
                                 data-address="{{ request.customer.address }}">
                                 Close it
                             </button>
-
-                            <!-- Modal for closing the service and rating the customer -->
-                            <div class="modal fade" id="closeServiceModal" tabindex="-1" role="dialog"
-                                aria-labelledby="closeServiceModalLabel" aria-hidden="true">
-                                <div class="modal-dialog" role="document">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" id="closeServiceModalLabel">Close Service Request
-                                            </h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                                aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <p><strong>Service Name:</strong> <span id="modalServiceName"></span></p>
-                                            <p><strong>Customer Name:</strong> <span id="modalCustomerName"></span></p>
-                                            <p><strong>Customer ID:</strong> <span id="modalCustomerId"></span></p>
-                                            <p><strong>Address:</strong> <span id="modalAddress"></span></p>
-                                            <div class="form-group">
-                                                <label for="customerRating">Customer Rating (1 to 5):</label>
-                                                <input type="number" class="form-control" id="customerRating" step="0.1"
-                                                    min="1" max="5" required>
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="customerRemark">Remarks:</label>
-                                                <textarea class="form-control" id="customerRemark" rows="2"
-                                                    required></textarea>
-                                            </div>
-                                            <input type="hidden" id="requestId" value="">
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary"
-                                                data-bs-dismiss="modal">Close</button>
-                                            <button type="button" class="btn btn-primary"
-                                                id="submitCloseService">Submit</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <script>
-                                document.addEventListener('DOMContentLoaded', function () {
-                                    $('#closeServiceModal').on('show.bs.modal', function (event) {
-                                        var button = $(event.relatedTarget);
-                                        var requestId = button.data('id');
-                                        var serviceName = button.data('service-name');
-                                        var customerName = button.data('customer-name');
-                                        var customerId = button.data('customer-id');
-                                        var customerAddress = button.data('address');
-
-                                        var modal = $(this);
-                                        modal.find('#modalServiceName').text(serviceName);
-                                        modal.find('#modalCustomerName').text(customerName);
-                                        modal.find('#modalCustomerId').text(customerId);
-                                        modal.find('#modalAddress').text(customerAddress);
-                                        modal.find('#requestId').val(requestId);
-                                    });
-
-                                    document.getElementById('submitCloseService').addEventListener('click', function () {
-                                        const rating = parseFloat(document.getElementById('customerRating').value); // Parse rating as float
-                                        const remarks = document.getElementById('customerRemark').value;
-                                        const requestId = document.getElementById('requestId').value;
-
-                                        if (isNaN(rating) || rating < 1 || rating > 5) {
-                                            alert("Please provide valid inputs: rating between 1 and 5, and remarks.");
-                                            return;
-                                        }
-
-                                        fetch('/close_service_professional', {
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                            },
-                                            body: JSON.stringify({
-                                                requestId: requestId,
-                                                customerRating: rating,
-                                                customerRemark: remarks
-                                            }),
-                                        })
-                                            .then(response => response.json())
-                                            .then(data => {
-                                                if (data.message === "Service request closed and rated successfully") {
-                                                    // Display success message dynamically
-                                                    alert(data.message);
-                                                    // Optionally, update the UI without reloading
-                                                    // document.querySelector(`#status-${requestId}`).innerText = 'Closed';
-                                                    // document.querySelector(`#rating-${requestId}`).innerText = rating;
-
-                                                    $('#closeServiceModal').modal('hide');
-                                                } else {
-                                                    // Display error message dynamically
-                                                    alert("An error occurred: " + data.message);
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error('Error:', error);
-                                                alert('An error occurred. Please try again.');
-                                            });
-                                    });
-                                });
-                            </script>
                             {% elif request.service_status == 'requested' %}
-                            <form action="{{ url_for('complete_service', request_id=request.id) }}"
-                                style="display:inline;" method="POST">
-                                <button type="submit" class="btn btn-success btn-sm">Accept</button>
-                            </form>
-                            <form action="{{ url_for('reject_service', request_id=request.id) }}"
-                                style="display:inline;" method="POST">
-                                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
-                            </form>
-                            {% else %}
-                            <span>Closed</span>
+                            <button class="btn btn-success btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#acceptRejectModal" data-id="{{ request.id }}"
+                                data-service-name="{{ request.service.name }}"
+                                data-customer-name="{{ request.customer.name }}"
+                                data-customer-id="{{ request.customer.id }}"
+                                data-address="{{ request.customer.address }}"
+                                data-requested-date="{{ request.requested_date }}"
+                                data-requested-time="{{ request.requested_time }}">
+                                Accept
+                            </button>
+                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#acceptRejectModal" data-id="{{ request.id }}"
+                                data-service-name="{{ request.service.name }}"
+                                data-customer-name="{{ request.customer.name }}"
+                                data-customer-id="{{ request.customer.id }}"
+                                data-address="{{ request.customer.address }}"
+                                data-requested-date="{{ request.requested_date }}"
+                                data-requested-time="{{ request.requested_time }}">
+                                Reject
+                            </button>
                             {% endif %}
                         </td>
                     </tr>
@@ -216,41 +125,207 @@
                 </tbody>
             </table>
             {% else %}
-            <p>No services for today.</p>
+            <p>No services requested today.</p>
             {% endif %}
+            
+            <!-- Modal for closing the service and rating the customer -->
+            <div class="modal fade" id="closeServiceModal" tabindex="-1" role="dialog"
+                aria-labelledby="closeServiceModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="closeServiceModalLabel">Close Service Request</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>Service Name:</strong> <span id="modalServiceName"></span></p>
+                            <p><strong>Customer Name:</strong> <span id="modalCustomerName"></span></p>
+                            <p><strong>Customer ID:</strong> <span id="modalCustomerId"></span></p>
+                            <p><strong>Address:</strong> <span id="modalAddress"></span></p>
+                            <div class="form-group">
+                                <label for="customerRating">Customer Rating (1 to 5):</label>
+                                <input type="number" class="form-control" id="customerRating" step="0.1" min="1" max="5"
+                                    required>
+                            </div>
+                            <div class="form-group">
+                                <label for="customerRemark">Remarks:</label>
+                                <textarea class="form-control" id="customerRemark" rows="2" required></textarea>
+                            </div>
+                            <input type="hidden" id="requestId" value="">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" id="submitCloseService">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-            <!-- Closed Services Section -->
-            <h4>Closed Services</h4>
-            {% if closed_services %}
-            <table class="table table-info table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Customer Name</th>
-                        <th>Contact</th>
-                        <th>Location (with pin code)</th>
-                        <th>Closing Date</th>
-                        <th>My Rating</th>
-                        <th>Customer's Rating</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for closed_service in closed_services %}
-                    <tr>
-                        <td>{{ closed_service.id }}</td>
-                        <td>{{ closed_service.customer.name }}</td>
-                        <td>{{ closed_service.customer.phone_no }}</td>
-                        <td>{{ closed_service.customer.address ~ ','~ closed_service.customer.pin_code}}</td>
-                        <td>{{ closed_service.date_of_completion.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ closed_service.rating }}</td>
-                        <td>{{ closed_service.customer_rating }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p>No closed services yet.</p>
-            {% endif %}
+            <!-- Modal for accepting or rejecting the service -->
+            <div class="modal fade" id="acceptRejectModal" tabindex="-1" role="dialog"
+                aria-labelledby="acceptRejectModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="acceptRejectModalLabel">Accept/Reject Service Request</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>Service Name:</strong> <span id="modalServiceNameAcceptReject"></span></p>
+                            <p><strong>Customer Name:</strong> <span id="modalCustomerNameAcceptReject"></span></p>
+                            <p><strong>Customer ID:</strong> <span id="modalCustomerIdAcceptReject"></span></p>
+                            <p><strong>Address:</strong> <span id="modalAddressAcceptReject"></span></p>
+                            <p><strong>Requested Date:</strong> <span id="modalRequestedDate"></span></p>
+                            <p><strong>Requested Time:</strong> <span id="modalRequestedTime"></span></p>
+                            <input type="hidden" id="acceptRejectRequestId" value="">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-success" id="acceptServiceButton">Accept</button>
+                            <button type="button" class="btn btn-danger" id="rejectServiceButton">Reject</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- JavaScript for modals and form submission -->
+            <script>
+                // Close Service Modal handling
+                $('#closeServiceModal').on('show.bs.modal', function (event) {
+                    const button = $(event.relatedTarget);
+                    $('#modalServiceName').text(button.data('service-name'));
+                    $('#modalCustomerName').text(button.data('customer-name'));
+                    $('#modalCustomerId').text(button.data('customer-id'));
+                    $('#modalAddress').text(button.data('address'));
+                    $('#requestId').val(button.data('id'));
+                });
+
+                document.getElementById('submitCloseService').addEventListener('click', function () {
+                    const rating = parseFloat(document.getElementById('customerRating').value);
+                    const remarks = document.getElementById('customerRemark').value;
+                    const requestId = document.getElementById('requestId').value;
+
+                    if (isNaN(rating) || rating < 1 || rating > 5) {
+                        alert("Please provide valid inputs: rating between 1 and 5, and remarks.");
+                        return;
+                    }
+
+                    fetch('/close_service_professional', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            requestId: requestId,
+                            customerRating: rating,
+                            customerRemark: remarks
+                        }),
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                // Refresh the page on successful submission
+                                window.location.href = '/professional_dashboard';
+                            } else {
+                                return response.json().then(data => {
+                                    alert("An error occurred: " + data.message);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred. Please try again.');
+                        });
+                });
+
+                // Accept/Reject Service Modal handling
+                $('#acceptRejectModal').on('show.bs.modal', function (event) {
+                    const button = $(event.relatedTarget);
+                    const requestId = button.data('id');
+                    $('#modalServiceNameAcceptReject').text(button.data('service-name'));
+                    $('#modalCustomerNameAcceptReject').text(button.data('customer-name'));
+                    $('#modalCustomerIdAcceptReject').text(button.data('customer-id'));
+                    $('#modalAddressAcceptReject').text(button.data('address'));
+                    $('#modalRequestedDate').text(button.data('requested-date'));
+                    $('#modalRequestedTime').text(button.data('requested-time'));
+                    $('#acceptRejectRequestId').val(requestId);
+                });
+
+                document.getElementById('acceptServiceButton').addEventListener('click', function () {
+                    const requestId = document.getElementById('acceptRejectRequestId').value;
+
+                    fetch('/complete_service/' + requestId, {
+                        method: 'POST'
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                // Refresh the page on successful acceptance
+                                window.location.href = '/professional_dashboard';
+                            } else {
+                                return response.json().then(data => {
+                                    alert("An error occurred: " + data.message);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred. Please try again.');
+                        });
+                });
+
+                document.getElementById('rejectServiceButton').addEventListener('click', function () {
+                    const requestId = document.getElementById('acceptRejectRequestId').value;
+
+                    fetch('/reject_service/' + requestId, {
+                        method: 'POST'
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                // Refresh the page on successful rejection
+                                window.location.href = '/professional_dashboard';
+                            } else {
+                                return response.json().then(data => {
+                                    alert("An error occurred: " + data.message);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred. Please try again.');
+                        });
+                });
+            </script>
+             <!-- Closed Services Section -->
+             <h4>Closed Services</h4>
+             {% if closed_services %}
+             <table class="table table-info table-hover">
+                 <thead>
+                     <tr>
+                         <th>ID</th>
+                         <th>Customer Name</th>
+                         <th>Contact</th>
+                         <th>Location (with pin code)</th>
+                         <th>Closing Date</th>
+                         <th>My Rating</th>
+                         <th>Customer's Rating</th>
+                     </tr>
+                 </thead>
+                 <tbody>
+                     {% for closed_service in closed_services %}
+                     <tr>
+                         <td>{{ closed_service.id }}</td>
+                         <td>{{ closed_service.customer.name }}</td>
+                         <td>{{ closed_service.customer.phone_no }}</td>
+                         <td>{{ closed_service.customer.address ~ ','~ closed_service.customer.pin_code}}</td>
+                         <td>{{ closed_service.date_of_completion.strftime('%Y-%m-%d') }}</td>
+                         <td>{{ closed_service.rating }}</td>
+                         <td>{{ closed_service.customer_rating }}</td>
+                     </tr>
+                     {% endfor %}
+                 </tbody>
+             </table>
+             {% else %}
+             <p>No closed services yet.</p>
+             {% endif %}
         </div>
     </div>
 </body>

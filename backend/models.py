@@ -114,6 +114,9 @@ class Service_Request(db.Model):
     customer_remarks = db.Column(
         db.String, nullable=True
     )  # Remarks from the professional
+    # New fields for date and time
+    requested_date = db.Column(db.Date)
+    requested_time = db.Column(db.Time)
 
     service = db.relationship(
         "Service",

@@ -1501,3 +1501,301 @@ document.addEventListener('DOMContentLoaded', function () {
 </body>
 
 </html>
+
+
+<!-- Professional Dashboard -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Professional Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+    <div id="container">
+        <div id="panel">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+                    <label>Welcome {{ professional }}</label>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('professional_dashboard') }}">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('professional_summary') }}">Summary</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('professional_profile') }}">Profile</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Logout</a>
+                            </li>
+                        </ul>
+                        <form class="d-flex" action="{{ url_for('search_customers') }}" method="GET">
+                            <select class="form-select me-2" name="pin_code" id="pin_code">
+                                <option value="" disabled selected>Select Pin Code</option>
+                                {% for pin in pin_codes %}
+                                <option value="{{ pin }}">{{ pin }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="text" class="form-control me-2" placeholder="Customer Name"
+                                name="customer_name" />
+                            <input type="date" class="form-control me-2" name="date" />
+                            <button class="btn btn-outline-success" type="submit">Search</button>
+                        </form>
+
+                    </div>
+                </div>
+            </nav>
+            {% if message %}
+            <div class="alert alert-warning">{{ message }}</div>
+            {% endif %}
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="container">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <h2>Today's Services</h2>
+            {% if today_services %}
+            <table class="table table-info table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Customer Name</th>
+                        <th>Contact Phone</th>
+                        <th>Location (with pin code)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in today_services %}
+                    <tr>
+                        <td>{{ request.id }}</td>
+                        <td>{{ request.customer.name }}</td>
+                        <td>{{ request.customer.phone_no }}</td>
+                        <td>{{ request.customer.address ~ ', ' ~ request.customer.pin_code }}</td>
+                        <td>
+                            {% if request.service_status == 'ongoing' %}
+                            <button class="btn btn-warning btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#closeServiceModal" data-id="{{ request.id }}"
+                                data-service-name="{{ request.service.name }}"
+                                data-customer-name="{{ request.customer.name }}"
+                                data-customer-id="{{ request.customer.id }}"
+                                data-address="{{ request.customer.address }}">
+                                Close it
+                            </button>
+
+                            <!-- Modal for closing the service and rating the customer -->
+                            <div class="modal fade" id="closeServiceModal" tabindex="-1" role="dialog"
+                                aria-labelledby="closeServiceModalLabel" aria-hidden="true">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="closeServiceModalLabel">Close Service Request
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p><strong>Service Name:</strong> <span id="modalServiceName"></span></p>
+                                            <p><strong>Customer Name:</strong> <span id="modalCustomerName"></span></p>
+                                            <p><strong>Customer ID:</strong> <span id="modalCustomerId"></span></p>
+                                            <p><strong>Address:</strong> <span id="modalAddress"></span></p>
+                                            <div class="form-group">
+                                                <label for="customerRating">Customer Rating (1 to 5):</label>
+                                                <input type="number" class="form-control" id="customerRating" step="0.1"
+                                                    min="1" max="5" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="customerRemark">Remarks:</label>
+                                                <textarea class="form-control" id="customerRemark" rows="2"
+                                                    required></textarea>
+                                            </div>
+                                            <input type="hidden" id="requestId" value="">
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary"
+                                                data-bs-dismiss="modal">Close</button>
+                                            <button type="button" class="btn btn-primary"
+                                                id="submitCloseService">Submit</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function () {
+                                    $('#closeServiceModal').on('show.bs.modal', function (event) {
+                                        var button = $(event.relatedTarget);
+                                        var requestId = button.data('id');
+                                        var serviceName = button.data('service-name');
+                                        var customerName = button.data('customer-name');
+                                        var customerId = button.data('customer-id');
+                                        var customerAddress = button.data('address');
+
+                                        var modal = $(this);
+                                        modal.find('#modalServiceName').text(serviceName);
+                                        modal.find('#modalCustomerName').text(customerName);
+                                        modal.find('#modalCustomerId').text(customerId);
+                                        modal.find('#modalAddress').text(customerAddress);
+                                        modal.find('#requestId').val(requestId);
+                                    });
+
+                                    document.getElementById('submitCloseService').addEventListener('click', function () {
+                                        const rating = parseFloat(document.getElementById('customerRating').value); // Parse rating as float
+                                        const remarks = document.getElementById('customerRemark').value;
+                                        const requestId = document.getElementById('requestId').value;
+
+                                        if (isNaN(rating) || rating < 1 || rating > 5) {
+                                            alert("Please provide valid inputs: rating between 1 and 5, and remarks.");
+                                            return;
+                                        }
+
+                                        fetch('/close_service_professional', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                                requestId: requestId,
+                                                customerRating: rating,
+                                                customerRemark: remarks
+                                            }),
+                                        })
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                if (data.message === "Service request closed and rated successfully") {
+                                                    // Display success message dynamically
+                                                    alert(data.message);
+                                                    // Optionally, update the UI without reloading
+                                                    // document.querySelector(`#status-${requestId}`).innerText = 'Closed';
+                                                    // document.querySelector(`#rating-${requestId}`).innerText = rating;
+
+                                                    $('#closeServiceModal').modal('hide');
+                                                } else {
+                                                    // Display error message dynamically
+                                                    alert("An error occurred: " + data.message);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error('Error:', error);
+                                                alert('An error occurred. Please try again.');
+                                            });
+                                    });
+                                });
+                            </script>
+                            {% elif request.service_status == 'requested' %}
+                            <form action="{{ url_for('complete_service', request_id=request.id) }}"
+                                style="display:inline;" method="POST">
+                                <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                            </form>
+                            <form action="{{ url_for('reject_service', request_id=request.id) }}"
+                                style="display:inline;" method="POST">
+                                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                            </form>
+                            {% else %}
+                            <span>Closed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No services for today.</p>
+            {% endif %}
+
+            <!-- Closed Services Section -->
+            <h4>Closed Services</h4>
+            {% if closed_services %}
+            <table class="table table-info table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Customer Name</th>
+                        <th>Contact</th>
+                        <th>Location (with pin code)</th>
+                        <th>Closing Date</th>
+                        <th>My Rating</th>
+                        <th>Customer's Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for closed_service in closed_services %}
+                    <tr>
+                        <td>{{ closed_service.id }}</td>
+                        <td>{{ closed_service.customer.name }}</td>
+                        <td>{{ closed_service.customer.phone_no }}</td>
+                        <td>{{ closed_service.customer.address ~ ','~ closed_service.customer.pin_code}}</td>
+                        <td>{{ closed_service.date_of_completion.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ closed_service.rating }}</td>
+                        <td>{{ closed_service.customer_rating }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No closed services yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+</html>
+
+
+
+# Route for closing the service from the professional's side
+# @app.route("/close_service_professional/<int:request_id>", methods=["POST"])
+# def close_service_professional(request_id):
+#     service_request = Service_Request.query.get(request_id)
+#     professional_id = session["professional_id"]
+
+
+#     if service_request and service_request.professional_id == professional_id:
+#         service_request.service_status = "closed"
+#         service_request.date_of_completion = datetime.utcnow()
+#         service_request.customer_rating = request.form.get("customer_rating")
+#         service_request.customer_remarks = request.form.get("customer_remarks")
+#         db.session.commit()
+#         return redirect(url_for("professional_dashboard"))
+# @app.route("/close_service_professional", methods=["POST"])
+# def close_service_professional():
+#     data = request.get_json()
+#     request_id = data.get("requestId")
+#     customer_rating = data.get("customerRating")
+#     customer_remark = data.get("customerRemark")
+
+#     service_request = Service_Request.query.get(request_id)
+
+#     if not service_request:
+#         return {"message": "Service request not found"}, 404
+
+#     # Store the customer rating and remarks
+#     service_request.customer_rating = customer_rating
+#     service_request.customer_remarks = customer_remark
+#     service_request.service_status = "closed"  # Mark the service as closed
+#     service_request.date_of_completion = datetime.utcnow()
+#     db.session.commit()
+
+#     # return {"message": "Service request closed and rated successfully"}, 200
+#     return jsonify(redirect=url_for("professional_dashboard"))

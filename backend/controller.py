@@ -723,11 +723,16 @@ def get_service_professionals(service_id):
     )
 
 
+from datetime import datetime
+
+
 @app.route("/book_service", methods=["POST"])
 def book_service():
     service_id = request.form.get("service_id")
     professional_id = request.form.get("professional_id")
     customer_id = session.get("customer_id")
+    requested_date = request.form.get("requested_date")  # Fetch requested date
+    requested_time = request.form.get("requested_time")  # Fetch requested time
 
     # Fetch the customer from the database to check their blocked status
     customer = Customer.query.get(customer_id)
@@ -737,13 +742,26 @@ def book_service():
         flash("You cannot book services as your account has been blocked.", "danger")
         return redirect(url_for("customer_dashboard"))
 
-    # Proceed with booking if the customer is not blocked
+    # Convert requested_date and requested_time to correct format
+    try:
+        # Convert requested_date (string) to a date object
+        requested_date_obj = datetime.strptime(requested_date, "%Y-%m-%d").date()
+
+        # Convert requested_time (string) to a time object
+        requested_time_obj = datetime.strptime(requested_time, "%H:%M").time()
+    except ValueError:
+        flash("Invalid date or time format.", "danger")
+        return redirect(url_for("customer_dashboard"))
+
+    # Proceed with booking if the customer is not blocked and all data is available
     if service_id and professional_id and customer_id:
         new_request = Service_Request(
             service_id=service_id,
             customer_id=customer_id,
             professional_id=professional_id,
             date_of_request=datetime.utcnow(),
+            requested_date=requested_date_obj,  # Save the requested date as date object
+            requested_time=requested_time_obj,  # Save the requested time as time object
             service_status="requested",
         )
         db.session.add(new_request)
@@ -751,7 +769,7 @@ def book_service():
         flash("Service booked successfully!", "success")
         return redirect(url_for("customer_dashboard"))
     else:
-        flash("Failed to book service. Try again.", "danger")
+        flash("Failed to book service. Please fill out all the fields.", "danger")
         return redirect(url_for("customer_dashboard"))
 
 
@@ -861,10 +879,18 @@ def professional_dashboard():
             if professional.verified_status is None:
                 message = "Your admin verification is under process."
             elif professional.verified_status == "approved":
-                flash(
-                    "Your application has been approved. Please wait for service Requests.",
-                    "success",
-                )
+                service_requests = Service_Request.query.filter_by(
+                    professional_id=professional_id
+                ).all()
+                # Check if there are any service requests
+                if not any(
+                    req.service_status in ["requested", "ongoing"]
+                    for req in service_requests
+                ):
+                    flash(
+                        "Your application has been approved. Please wait for service Requests.",
+                        "success",
+                    )
             elif professional.verified_status == "rejected":
                 message = "Your application has been rejected. Please change your profile info."
             elif professional.block_status:
@@ -967,27 +993,46 @@ def search_customers():
 @app.route("/complete_service/<int:request_id>", methods=["POST"])
 def complete_service(request_id):
     service_request = Service_Request.query.get(request_id)
-    professional_id = session["professional_id"]
+    professional_id = session.get("professional_id")
 
     if service_request and service_request.professional_id == professional_id:
-        # Update status to ongoing instead of accepted
+        # Update the service status to 'ongoing'
         service_request.service_status = "ongoing"
         service_request.date_of_completion = None  # Reset completion date if needed
+
+        # Commit the changes to the database
         db.session.commit()
-        return redirect(url_for("professional_dashboard"))
+
+        return (
+            jsonify(
+                {
+                    "message": f"Service accepted. Scheduled on {service_request.requested_date} at {service_request.requested_time}."
+                }
+            ),
+            200,
+        )
+
+    return (
+        jsonify({"message": "Unauthorized access or service request not found."}),
+        404,
+    )
 
 
 @app.route("/reject_service/<int:request_id>", methods=["POST"])
 def reject_service(request_id):
     service_request = Service_Request.query.get(request_id)
-    professional_id = session["professional_id"]
+    professional_id = session.get("professional_id")
 
     if service_request and service_request.professional_id == professional_id:
-        # db.session.delete(service_request)
         service_request.service_status = "rejected"
         service_request.date_of_completion = datetime.utcnow()
         db.session.commit()
-        return redirect(url_for("professional_dashboard"))
+        return jsonify({"message": "Service rejected successfully."}), 200
+
+    return (
+        jsonify({"message": "Unauthorized access or service request not found."}),
+        404,
+    )
 
 
 @app.route("/professional_dashboard/summary")
@@ -1307,7 +1352,7 @@ def update_professional_services():
             if custom_description:
                 service.custom_description = custom_description
             if custom_time_required:
-                service.custom_time_required = int(custom_time_required)
+                service.custom_time_required = custom_time_required
 
         db.session.commit()
         flash("Services updated successfully!", "success")
@@ -1383,43 +1428,35 @@ def update_customer_profile():
     return redirect(url_for("customer_profile"))
 
 
-# Route for closing the service from the professional's side
-# @app.route("/close_service_professional/<int:request_id>", methods=["POST"])
-# def close_service_professional(request_id):
-#     service_request = Service_Request.query.get(request_id)
-#     professional_id = session["professional_id"]
-
-
-#     if service_request and service_request.professional_id == professional_id:
-#         service_request.service_status = "closed"
-#         service_request.date_of_completion = datetime.utcnow()
-#         service_request.customer_rating = request.form.get("customer_rating")
-#         service_request.customer_remarks = request.form.get("customer_remarks")
-#         db.session.commit()
-#         return redirect(url_for("professional_dashboard"))
 @app.route("/close_service_professional", methods=["POST"])
 def close_service_professional():
-    data = request.get_json()
+    data = request.json
     request_id = data.get("requestId")
     customer_rating = data.get("customerRating")
-    customer_remark = data.get("customerRemark")
+    customer_remarks = data.get("customerRemark")
 
     service_request = Service_Request.query.get(request_id)
+    professional_id = session["professional_id"]
 
-    if not service_request:
-        return {"message": "Service request not found"}, 404
+    if service_request and service_request.professional_id == professional_id:
+        # Update the service status to 'closed'
+        service_request.service_status = "closed"
+        service_request.customer_rating = customer_rating  # Save the customer rating
+        service_request.customer_remarks = customer_remarks  # Save the remarks
+        service_request.date_of_completion = (
+            datetime.utcnow()
+        )  # Set the completion date
 
-    # Store the customer rating and remarks
-    service_request.customer_rating = customer_rating
-    service_request.customer_remarks = customer_remark
-    service_request.service_status = "closed"  # Mark the service as closed
-    service_request.date_of_completion = datetime.utcnow()
-    db.session.commit()
+        # Commit the changes to the database
+        db.session.commit()
 
-    return {"message": "Service request closed and rated successfully"}, 200
+        # Flash a success message and return the dashboard
+        flash("Service request closed and rated successfully.", "success")
+        return redirect(url_for("professional_dashboard"))
+
+    return jsonify({"message": "An error occurred. Please try again."}), 400
 
 
-# Route for customer to write a review after service completion
 @app.route("/rate_professional/<int:request_id>", methods=["POST"])
 def rate_professional(request_id):
     service_request = Service_Request.query.get(request_id)
