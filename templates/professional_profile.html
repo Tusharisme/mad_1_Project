@@ -80,6 +80,7 @@
                             <th>Base Price</th>
                             <th>Custom Price</th>
                             <th>Custom Description</th>
+                            <th>Custom Time (hours)</th> <!-- New Time Column -->
                         </tr>
                     </thead>
                     <tbody>
@@ -89,14 +90,23 @@
                             <td>{{ service.service.base_price }}</td>
                             <td>
                                 <input type="text" class="form-control" name="custom_price_{{ service.service_id }}"
-                                    value="{{ service.custom_price or '' }}" placeholder="Enter custom price" />
+                                    value="{{ service.custom_price or service.service.base_price }}"
+                                    placeholder="Enter custom price" />
                             </td>
+
                             <td>
                                 <input type="text" class="form-control"
                                     name="custom_description_{{ service.service_id }}"
-                                    value="{{ service.custom_description or '' }}"
+                                    value="{{ service.custom_description or service.service.description }}"
                                     placeholder="Enter custom description" />
                             </td>
+
+                            <td>
+                                <input type="number" class="form-control" name="custom_time_{{ service.service_id }}"
+                                    value="{{ service.custom_time_required or service.service.base_time_required }}"
+                                    placeholder="Enter custom time" />
+                            </td>
+
                         </tr>
                         {% endfor %}
                     </tbody>

@@ -53,6 +53,21 @@
                     </div>
                 </div>
             </nav>
+            {% if message %}
+            <div class="alert alert-warning">{{ message }}</div>
+            {% endif %}
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="container">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
 
             <h2>Today's Services</h2>
             {% if today_services %}
@@ -107,7 +122,7 @@
                                             </div>
                                             <div class="form-group">
                                                 <label for="customerRemark">Remarks:</label>
-                                                <textarea class="form-control" id="customerRemark" rows="3"
+                                                <textarea class="form-control" id="customerRemark" rows="2"
                                                     required></textarea>
                                             </div>
                                             <input type="hidden" id="requestId" value="">
@@ -145,6 +160,11 @@
                                         const remarks = document.getElementById('customerRemark').value;
                                         const requestId = document.getElementById('requestId').value;
 
+                                        if (rating < 1 || rating > 5 || remarks.trim() === "") {
+                                            alert("Please provide valid inputs: rating between 1 and 5, and remarks.");
+                                            return;
+                                        }
+
                                         fetch('/close_service_professional', {
                                             method: 'POST',
                                             headers: {
@@ -156,21 +176,28 @@
                                                 customerRemark: remarks
                                             }),
                                         })
-                                            .then(response => {
-                                                if (response.ok) {
-                                                    // Redirect or refresh the page on success
-                                                    location.reload(); // This will reload the current page
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                if (data.message === "Service request closed and rated successfully") {
+                                                    // Display success message dynamically
+                                                    alert(data.message);
+                                                    // Optionally, update the UI without reloading
+                                                    // document.querySelector(`#status-${requestId}`).innerText = 'Closed';
+                                                    // document.querySelector(`#rating-${requestId}`).innerText = rating;
+
+                                                    $('#closeServiceModal').modal('hide');
                                                 } else {
-                                                    alert('Error: ' + response.statusText);
+                                                    // Display error message dynamically
+                                                    alert("An error occurred: " + data.message);
                                                 }
                                             })
-                                            .catch(error => console.error('Error:', error));
+                                            .catch(error => {
+                                                console.error('Error:', error);
+                                                alert('An error occurred. Please try again.');
+                                            });
                                     });
                                 });
                             </script>
-
-
-
                             {% elif request.service_status == 'requested' %}
                             <form action="{{ url_for('complete_service', request_id=request.id) }}"
                                 style="display:inline;" method="POST">

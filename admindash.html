@@ -486,7 +486,7 @@ customer Dashboard
     data-id="{{ request.id }}">Close It</button>
 
 
-admin Dashboard 
+admin Dashboard
 <!DOCTYPE html>
 <html lang="en">
 
@@ -1192,6 +1192,44 @@ admin Dashboard
                         });
                 });
             </script>
+            <!-- Customers Section -->
+            <h4>Customers</h4>
+            {% if customers %}
+            <table class="table table-info table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Phone</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                    <tr>
+                        <td><a href="{{ url_for('admin_dashboard', customer_id=customer.id) }}">{{ customer.id }}</a>
+                        </td>
+                        <td>{{ customer.name }}</td>
+                        <td>{{ customer.email }}</td>
+                        <td>{{ customer.phone_no }}</td>
+                        <td>
+                            <form action="{{ url_for('block_customer', customer_id=customer.id) }}" method="POST"
+                                style="display:inline;">
+                                <button type="submit" class="btn btn-danger">Block</button>
+                            </form>
+                            <form action="{{ url_for('unblock_customer', customer_id=customer.id) }}" method="POST"
+                                style="display:inline;">
+                                <button type="submit" class="btn btn-success">Unblock</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <h3>No customers available</h3>
+            {% endif %}
 
             <!-- Service Requests Section -->
             <h4>Service Requests</h4>
@@ -1228,3 +1266,71 @@ admin Dashboard
 </body>
 
 </html>
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    $('#closeServiceModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var requestId = button.data('id');
+        var serviceName = button.data('service-name');
+        var customerName = button.data('customer-name');
+        var customerId = button.data('customer-id');
+        var customerAddress = button.data('address');
+
+        var modal = $(this);
+        modal.find('#modalServiceName').text(serviceName);
+        modal.find('#modalCustomerName').text(customerName);
+        modal.find('#modalCustomerId').text(customerId);
+        modal.find('#modalAddress').text(customerAddress);
+        modal.find('#requestId').val(requestId);
+    });
+
+    document.getElementById('submitCloseService').addEventListener('click', function () {
+        const rating = document.getElementById('customerRating').value;
+        const remarks = document.getElementById('customerRemark').value;
+        const requestId = document.getElementById('requestId').value;
+
+        fetch('/close_service_professional', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                requestId: requestId,
+                customerRating: rating,
+                customerRemark: remarks
+            }),
+        })
+            .then(response => {
+                if (response.redirected) {
+                    // Redirect or refresh the page on success
+                    window.location.href = response.url; // Redirect on success
+                } else {
+                    alert('Give correct value ');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    });
+});
+
+
+<h1>Professional Details</h1>
+
+    <p><strong>Professional ID:</strong> {{ professional.id }} <br> <br>
+        <strong>Professional Name:</strong> {{ professional.name }}<br><br>
+        <strong>Professional Experience:</strong> {{ professional.experience }} <b>years</b><br><br>
+        <strong>Service Name:</strong> {{ professional.service_type }}<br><br>
+        <strong>verified Status</strong> {{ professional.verified_status }}<br><br>
+
+        <!-- <p><strong>Action:</strong> {{ professional.time_required }} mins</p> -->
+        <!-- Document Section -->
+        <strong>Uploaded Document:</strong>
+        {% if professional.document %}
+        <!-- Assuming the document is stored in '/uploads/' folder and accessible via static files -->
+        <a href="{{ url_for('static', filename='uploads/' + professional.document) }}" target="_blank">
+            View Document
+        </a>
+        {% else %}
+        No document uploaded.
+        {% endif %}
+    </p>

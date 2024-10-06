@@ -86,7 +86,7 @@ def admin_dashboard():
     if (
         "username" in session and session.get("role") == 0
     ):  # Check if logged in as admin
-        services = fetch_all_services()
+        services = Service.query.all()
 
         # Fetch all professionals with their full details
         professionals = db.session.query(
@@ -94,8 +94,7 @@ def admin_dashboard():
         ).all()  # Ensure you're fetching the complete object
 
         service_requests = Service_Request.query.all()  # Fetch all service requests
-        customers = Customer.query.all()  # Fetch all customers
-
+        customers = Customer.query.filter(Customer.role == 1).all()
         # Calculate the average rating for professionals
         for professional in professionals:
             professional_id = (
@@ -104,6 +103,9 @@ def admin_dashboard():
             professional.average_rating = update_professional_rating(
                 professional_id
             )  # Store the average rating
+        for customer in customers:
+            customer_id = customer.id
+            customer.average_rating = update_customer_rating(customer_id)
 
         return render_template(
             "admin_dashboard.html",
@@ -115,6 +117,17 @@ def admin_dashboard():
         )
     else:
         return redirect(url_for("user_login"))  # Redirect to login if not an admin
+
+
+@app.route("/customer/<int:customer_id>", methods=["GET"])
+def customer_details(customer_id):
+    # Your logic to display customer details
+    customer = Customer.query.get(customer_id)
+    if customer:
+        return render_template("customer_details.html", customer=customer)
+    else:
+        flash("Customer not found.", "danger")
+        return redirect(url_for("admin_dashboard"))
 
 
 @app.route("/admin/summary", methods=["GET"])
@@ -221,17 +234,19 @@ def search_admin():
 
     elif entity == "customer":
         if not query:
-            results = Customer.query.all()
+            results = Customer.query.filter(Customer.role == 1).all()
         else:
             if criteria == "name":
-                results = Customer.query.filter(Customer.name.ilike(f"%{query}%")).all()
+                results = Customer.query.filter(
+                    Customer.role == 1, Customer.name.ilike(f"%{query}%")
+                ).all()
             elif criteria == "email":
                 results = Customer.query.filter(
-                    Customer.email.ilike(f"%{query}%")
+                    Customer.role == 1, Customer.email.ilike(f"%{query}%")
                 ).all()
             elif criteria == "phone":
                 results = Customer.query.filter(
-                    Customer.phone_no.ilike(f"%{query}%")
+                    Customer.role == 1, Customer.phone_no.ilike(f"%{query}%")
                 ).all()
 
     return render_template(
@@ -284,8 +299,8 @@ def fetch_service_request_summary():
         )  # Clean and standardize the status
         if status in status_count:
             status_count[status] += 1
-        else:
-            print(f"Unknown status encountered: {status}")  # Log for debugging
+        # else:
+        #     print(f"Unknown status encountered: {status}")  # Log for debugging
 
     return {
         "labels": list(status_count.keys()),
@@ -421,29 +436,33 @@ def prof_register():
 
 @app.route("/services/add", methods=["GET", "POST"])
 def add_service():
-    service_name = request.form.get("service_name")
-    description = request.form.get("description")
-    base_price = request.form.get("base_price")
+    if request.method == "POST":
+        service_name = request.form.get("service_name")
+        description = request.form.get("description")
+        base_price = request.form.get("base_price")
+        base_time_required = request.form.get("base_time_required")  # New field
 
-    new_service = Service(
-        name=service_name, description=description, base_price=base_price
-    )
-    db.session.add(new_service)
-    db.session.commit()
-    # Fetch updated service list
-    updated_services = fetch_all_services()
-    updated_professional = fetch_all_professional()
+        # Create and add new service
+        new_service = Service(
+            name=service_name,
+            description=description,
+            base_price=base_price,
+            base_time_required=base_time_required,
+        )
+        db.session.add(new_service)
+        db.session.commit()
 
-    # Assuming the admin username is stored in the session after login
-    admin_username = session.get("username")
+        flash(
+            "Service added successfully!", "success"
+        )  # Optional: flash message for feedback
 
-    # Directly render admin_dashboard.html with updated services and admin details
-    return render_template(
-        "admin_dashboard.html",
-        admin=admin_username,
-        services=updated_services,
-        professionals=updated_professional,
-    )
+        # Redirect to the admin dashboard after adding the service
+        return redirect(
+            url_for("admin_dashboard")
+        )  # Assuming admin_dashboard is the endpoint for your dashboard
+
+    # If GET request, render the add service form (if needed)
+    return render_template("add_service.html")  # Render the form to add a service
 
 
 @app.route("/services/edit/<int:service_id>", methods=["POST"])
@@ -451,6 +470,7 @@ def edit_service(service_id):
     new_service_name = request.form.get("service_name")
     new_description = request.form.get("description")
     new_base_price = request.form.get("base_price")
+    new_base_time_required = request.form.get("base_time_required")  # New field
 
     # Fetch the service by id
     service = Service.query.filter_by(id=service_id).first()
@@ -460,6 +480,7 @@ def edit_service(service_id):
         service.name = new_service_name
         service.description = new_description
         service.base_price = new_base_price
+        service.base_time_required = new_base_time_required
         db.session.commit()
 
     # Redirect to login page after successful edit
@@ -478,16 +499,16 @@ def delete_service(service_id):
     return redirect(url_for("user_login"))
 
 
-def fetch_all_services():
-    services = Service.query.all()
-    service_list = {}
-    for service in services:
-        service_list[service.id] = [
-            service.name,
-            service.base_price,
-            service.description,
-        ]  # Add description
-    return service_list
+# def fetch_all_services():
+#     services = Service.query.all()
+#     service_list = {}
+#     for service in services:
+#         service_list[service.id] = [
+#             service.name,
+#             service.base_price,
+#             service.description,
+#         ]  # Add description
+#     return service_list
 
 
 @app.route("/service/<int:service_id>", methods=["GET"])
@@ -531,8 +552,16 @@ def approve_professional(professional_id):
     professional = Service_Professional.query.get(professional_id)
     if professional:
         professional.verified_status = "approved"
+        professional.block_status = (
+            False  # Ensure the professional is unblocked upon approval
+        )
         db.session.commit()
-    return redirect(url_for("user_login", update_dashboard=True))
+        flash("Professional approved successfully!", "success")
+    else:
+        flash("Professional not found.", "danger")
+    return redirect(
+        url_for("admin_dashboard")
+    )  # Redirect to admin dashboard or another appropriate route
 
 
 @app.route("/professional/reject/<int:professional_id>", methods=["POST"])
@@ -540,8 +569,16 @@ def reject_professional(professional_id):
     professional = Service_Professional.query.get(professional_id)
     if professional:
         professional.verified_status = "rejected"
+        # You can choose to block the professional or set additional flags if needed
+        professional.block_status = True  # Block the professional upon rejection
         db.session.commit()
-    return redirect(url_for("user_login"))
+        flash(
+            "Professional rejected. Please inform them to update their profile info.",
+            "warning",
+        )
+    else:
+        flash("Professional not found.", "danger")
+    return redirect(url_for("admin_dashboard"))  # Redirect to admin dashboard
 
 
 @app.route("/professional/delete/<int:professional_id>", methods=["POST"])
@@ -552,11 +589,15 @@ def delete_professional(professional_id):
             professional
         )  # This will also delete all related service requests
         db.session.commit()
-        flash("Professional and related service requests deleted successfully!")
+        flash(
+            "Professional and related service requests deleted successfully!", "success"
+        )
     else:
-        flash("Professional not found.")
+        flash("Professional not found.", "danger")
 
-    return redirect(url_for("user_login", update_dashboard=True))
+    return redirect(
+        url_for("admin_dashboard")
+    )  # Redirect to admin dashboard or appropriate route
 
 
 @app.route("/api/request_service", methods=["POST"])
@@ -610,6 +651,7 @@ def get_professional_details(professional_id):
 def customer_dashboard():
     # Assuming the logged-in customer's ID is stored in the session
     customer_id = session.get("customer_id")
+    customer = Customer.query.get(customer_id)
 
     if not customer_id:
         return redirect(url_for("user_login"))
@@ -623,11 +665,17 @@ def customer_dashboard():
 
     # Fetch all service requests for the logged-in customer (for the service history section)
     service_requests = Service_Request.query.filter_by(customer_id=customer_id).all()
-    print(service_requests)
+    if customer.is_blocked:
+        block_message = (
+            "You have been blocked by the admin and cannot book any services."
+        )
+    else:
+        block_message = ""
 
     # Render the customer dashboard template with both services and service requests
     return render_template(
         "customer_dashboard.html",
+        block_message=block_message,
         services=services,
         service_requests=service_requests,
         pin_codes=pin_codes,
@@ -665,6 +713,15 @@ def book_service():
     professional_id = request.form.get("professional_id")
     customer_id = session.get("customer_id")
 
+    # Fetch the customer from the database to check their blocked status
+    customer = Customer.query.get(customer_id)
+
+    # Check if the customer is blocked
+    if customer.is_blocked:
+        flash("You cannot book services as your account has been blocked.", "danger")
+        return redirect(url_for("customer_dashboard"))
+
+    # Proceed with booking if the customer is not blocked
     if service_id and professional_id and customer_id:
         new_request = Service_Request(
             service_id=service_id,
@@ -746,8 +803,26 @@ def close_service():
 def professional_dashboard():
     if "professional_id" in session:  # Check if professional is logged in
         professional_id = session["professional_id"]
+        professional = Service_Professional.query.get(professional_id)
 
-        # Fetching service requests specific to the logged-in professional and eager load professional relationship
+        # Initialize the message variable
+        message = None
+
+        if professional:
+            # Check the professional's verification and block status
+            if professional.verified_status is None:
+                message = "Your admin verification is under process."
+            elif professional.verified_status == "approved":
+                flash(
+                    "Your application has been approved. Please wait for service Requests.",
+                    "success",
+                )
+            elif professional.verified_status == "rejected":
+                message = "Your application has been rejected. Please change your profile info."
+            elif professional.block_status:
+                message = "You have been blocked by admin and cannot book any services."
+
+        # Fetching service requests specific to the logged-in professional
         service_requests = (
             Service_Request.query.options(
                 joinedload(
@@ -757,7 +832,6 @@ def professional_dashboard():
             .filter_by(professional_id=professional_id)
             .all()
         )
-        # service_requests.service_status == "pending"
 
         # Fetch unique pin codes based on customers from the service requests
         pin_codes = (
@@ -783,9 +857,12 @@ def professional_dashboard():
             "professional_dashboard.html",
             today_services=today_services,
             closed_services=closed_services,
+            message=message,  # This will always have a value
             pin_codes=pin_codes,
             professional=session["username"],
         )
+
+    return redirect(url_for("user_login"))  # Redirect if not logged in
 
 
 @app.route("/search_customers", methods=["GET"])
@@ -1165,30 +1242,27 @@ def update_professional_profile():
 @app.route("/professional/profile/update_services", methods=["POST"])
 def update_professional_services():
     professional_id = session.get("professional_id")
-    if not professional_id:
-        flash("You must be logged in to update services.", "danger")
-        return redirect(url_for("professional_profile"))
+    if professional_id:
+        professional_services = ProfessionalService.query.filter_by(
+            professional_id=professional_id
+        ).all()
 
-    # Fetch the professional's services
-    professional_services = ProfessionalService.query.filter_by(
-        professional_id=professional_id
-    ).all()
+        for service in professional_services:
+            custom_price = request.form.get(f"custom_price_{service.service_id}")
+            custom_description = request.form.get(
+                f"custom_description_{service.service_id}"
+            )
+            custom_time_required = request.form.get(f"custom_time_{service.service_id}")
 
-    # Loop through each service and update its custom price and description if provided
-    for service in professional_services:
-        custom_price = request.form.get(f"custom_price_{service.service_id}")
-        custom_description = request.form.get(
-            f"custom_description_{service.service_id}"
-        )
+            if custom_price:
+                service.custom_price = float(custom_price)
+            if custom_description:
+                service.custom_description = custom_description
+            if custom_time_required:
+                service.custom_time_required = int(custom_time_required)
 
-        if custom_price:
-            service.custom_price = float(custom_price)  # Ensure it's stored as a float
-        if custom_description:
-            service.custom_description = custom_description
-
-    # Commit changes to the database
-    db.session.commit()
-    flash("Services updated successfully!", "success")
+        db.session.commit()
+        flash("Services updated successfully!", "success")
     return redirect(url_for("professional_profile"))
 
 
@@ -1377,11 +1451,80 @@ def block_customer(customer_id):
     customer = Customer.query.get_or_404(customer_id)
     customer.is_blocked = True  # Set the is_blocked field to True
     db.session.commit()
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for("admin_dashboard"))
+
 
 @app.route("/unblock_customer/<int:customer_id>", methods=["POST"])
 def unblock_customer(customer_id):
     customer = Customer.query.get_or_404(customer_id)
     customer.is_blocked = False  # Set the is_blocked field to False
     db.session.commit()
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for("admin_dashboard"))
+
+
+def update_customer_rating(customer_id):
+    # Count the number of completed service requests for the customer
+    completed_requests_count = (
+        db.session.query(Service_Request)
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.service_status == "closed",
+            Service_Request.customer_rating.isnot(
+                None
+            ),  # Only consider requests with professional ratings
+        )
+        .count()
+    )
+
+    # Calculate the average rating only if there are at least 7 completed service requests
+    if completed_requests_count >= 7:
+        average = (
+            db.session.query(func.avg(Service_Request.customer_rating))
+            .filter(
+                Service_Request.customer_id == customer_id,
+                Service_Request.service_status == "closed",
+                Service_Request.customer_rating.isnot(
+                    None
+                ),  # Only consider requests with professional ratings
+            )
+            .scalar()
+        )
+        average = round(average, 1) if average is not None else 0.0
+        # Update the customer's average rating in the database
+        customer = Customer.query.get(customer_id)
+        if customer:
+            customer.average_rating = average
+            db.session.commit()
+
+    else:
+        # If less than 7 service requests, set the average rating to None
+        customer = Customer.query.get(customer_id)
+        if customer:
+            customer.average_rating = None
+            db.session.commit()
+
+    return customer.average_rating  # Return the updated average rating
+
+
+@app.route("/professional/block/<int:professional_id>", methods=["POST"])
+def block_professional(professional_id):
+    professional = Service_Professional.query.get(professional_id)
+    if professional:
+        professional.block_status = True  # Set the block status to True
+        db.session.commit()
+        flash("Professional has been blocked successfully.", "success")
+    else:
+        flash("Professional not found.", "danger")
+    return redirect(url_for("admin_dashboard"))  # Redirect back to the admin dashboard
+
+
+@app.route("/professional/unblock/<int:professional_id>", methods=["POST"])
+def unblock_professional(professional_id):
+    professional = Service_Professional.query.get(professional_id)
+    if professional:
+        professional.block_status = False  # Set the block status to False
+        db.session.commit()
+        flash("Professional has been unblocked successfully.", "success")
+    else:
+        flash("Professional not found.", "danger")
+    return redirect(url_for("admin_dashboard"))  # Redirect back to the admin dashboard

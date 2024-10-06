@@ -60,6 +60,10 @@
                     </div>
                 </div>
             </nav>
+            {% if block_message %}
+            <div class="alert alert-warning">{{ block_message }}</div>
+            {% endif %}
+
 
             <!-- Service Categories -->
             <h4 class="mt-4">Service Categories</h4>
@@ -67,7 +71,7 @@
                 {% for service in services %}
                 <div class="col-md-3 mb-3">
                     <a href="{{ url_for('get_service_professionals', service_id=service.id) }}"
-                        class="btn btn-primary btn-block">
+                        class="btn btn-secondary btn-block">
                         {{ service.name }}
                     </a>
                 </div>
@@ -88,6 +92,7 @@
 
             <!-- Service History Table -->
             <h4 class="mt-4">Service History</h4>
+            {% if service_requests %}
             <table class="table table-info table-hover">
                 <thead>
                     <tr>
@@ -218,6 +223,9 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <p>No service History Available ! </p>
+            {% endif %}
 
             <!-- JavaScript to Show Confirmation Before Cancel -->
             <script>

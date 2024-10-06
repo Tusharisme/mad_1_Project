@@ -42,6 +42,13 @@
                             {{ service.description }}
                             {% endif %}
                         </p>
+                        <p class="card-text">Time Required:
+                            {% if professional_service.custom_time_required %}
+                            {{ professional_service.custom_time_required }} mins
+                            {% else %}
+                            {{ service.base_time_required  }}
+                            {% endif %}
+                        </p>
 
                         <form action="{{ url_for('book_service') }}" method="POST">
                             <input type="hidden" name="service_id" value="{{ service.id }}">
@@ -57,7 +64,7 @@
         <p>No professionals available for this service.</p>
         {% endif %}
         <br><br>
-        <a href="{{ url_for('customer_dashboard') }}" class="btn btn-primary mt-3">Back to Services</a>
+        <a href="{{ url_for('customer_dashboard') }}" class="btn btn-secondary mt-3">Back to Services</a>
     </div>
 </body>
 

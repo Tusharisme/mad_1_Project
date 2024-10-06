@@ -40,6 +40,7 @@ class Service_Professional(db.Model):
     verified_status = db.Column(db.String, nullable=True)
     average_rating = db.Column(db.Float, nullable=True)  # New column for average rating
     document = db.Column(db.String, nullable=True)  # Column to store document path
+    block_status = db.Column(db.Boolean, default=False)  # Block/unblock status
 
     # Relationship with ProfessionalService (custom services per professional)
     custom_services = db.relationship(
@@ -57,7 +58,7 @@ class Service(db.Model):
     base_price = db.Column(
         db.Integer, nullable=False
     )  # Changed 'price' to 'base_price'
-    time_required = db.Column(db.Integer, nullable=True)
+    base_time_required = db.Column(db.Integer, nullable=True)
     description = db.Column(db.String, nullable=False)
 
     # Relationship with ProfessionalService (custom services per professional)
@@ -78,9 +79,11 @@ class ProfessionalService(db.Model):
     service_id = db.Column(db.Integer, db.ForeignKey("service.id"), nullable=False)
     custom_price = db.Column(db.Float, nullable=True)
     custom_description = db.Column(db.String, nullable=True)
-
+    custom_time_required = db.Column(
+        db.Integer
+    )  # New field for time required in minutes (or hours)
     # Optional: Add any additional fields to track custom services
-    additional_info = db.Column(db.String, nullable=True)
+    # additional_info = db.Column(db.String, nullable=True)
 
     # Use back_populates instead of backref, to avoid conflicts
     professional = db.relationship(
