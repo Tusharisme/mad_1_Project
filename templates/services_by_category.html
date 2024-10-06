@@ -15,17 +15,28 @@
         <div class="row">
             {% for service in services %}
             <div class="col-md-4">
-                <div class="card">
+                <div class="card mb-3">
+                    <a href="{{ url_for('get_service_professionals', service_id=service.id) }}"
+                        class="stretched-link"></a>
                     <div class="card-body">
                         <h5 class="card-title">{{ service.name }}</h5>
-                        <p class="card-text">Price: ${{ service.base_price }}</p>
-                        <a href="{{ url_for('get_service_professionals', service_id=service.id) }}"
-                            class="btn btn-primary">View Professionals</a>
+
+                        {% if query is not none %}
+                        <!-- If the search is based on a query, just display the service name -->
+                        <!-- <p class="card-text">Price: ${{ service.base_price }}</p> -->
+                        {% elif rating is not none %}
+                        <!-- If the search is based on rating, display service name and rating -->
+                        <p class="card-text">Rating: {{ service.professional.average_rating }}</p>
+                        {% elif pin_code is not none %}
+                        <!-- If the search is based on pin code, display service name and pin code -->
+                        <p class="card-text">Pin Code: {{ service.professional.pin_code }}</p>
+                        {% endif %}
+
                     </div>
                 </div>
             </div>
             {% else %}
-            <p>No services found matching your query.</p>
+            <p>We couldn't find what you were looking for. Please check your keywords again!</p>
             {% endfor %}
         </div>
         <a href="{{ url_for('customer_dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>

@@ -58,7 +58,7 @@ class Service(db.Model):
     base_price = db.Column(
         db.Integer, nullable=False
     )  # Changed 'price' to 'base_price'
-    base_time_required = db.Column(db.Integer, nullable=True)
+    base_time_required = db.Column(db.String, nullable=True)
     description = db.Column(db.String, nullable=False)
 
     # Relationship with ProfessionalService (custom services per professional)
@@ -80,7 +80,7 @@ class ProfessionalService(db.Model):
     custom_price = db.Column(db.Float, nullable=True)
     custom_description = db.Column(db.String, nullable=True)
     custom_time_required = db.Column(
-        db.Integer
+        db.String
     )  # New field for time required in minutes (or hours)
     # Optional: Add any additional fields to track custom services
     # additional_info = db.Column(db.String, nullable=True)

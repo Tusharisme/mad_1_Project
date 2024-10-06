@@ -66,7 +66,7 @@ canvas {
 }
 
 .card {
-  border: 2px solid #810a0a !important; /* Darker border color */
+  border: 2px solid #000000 !important; /* Darker border color */
   height: auto;
   width: auto;
   color: #7f0c0c;

@@ -64,19 +64,24 @@
             <div class="alert alert-warning">{{ block_message }}</div>
             {% endif %}
 
-
             <!-- Service Categories -->
             <h4 class="mt-4">Service Categories</h4>
             <div class="row">
                 {% for service in services %}
-                <div class="col-md-3 mb-3">
-                    <a href="{{ url_for('get_service_professionals', service_id=service.id) }}"
-                        class="btn btn-secondary btn-block">
-                        {{ service.name }}
-                    </a>
+                <div class="col-md-3 mb-4">
+                    <div class="card h-100">
+                        <a href="{{ url_for('get_service_professionals', service_id=service.id) }}"
+                            class="stretched-link"></a>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ service.name }}</h5>
+                            <!-- Optionally, you can add more details about the service here -->
+                        </div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
+
+
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
             <div class="container mt-2">
@@ -152,8 +157,8 @@
                                             </p>
                                             <div class="form-group">
                                                 <label for="serviceRating">Service Rating:(1 to 5)</label>
-                                                <input type="number" class="form-control" id="serviceRating" min="1"
-                                                    max="5" required>
+                                                <input type="number" class="form-control" step="0.1" id="serviceRating"
+                                                    min="1" max="5" required>
                                             </div>
                                             <div class="form-group">
                                                 <label for="serviceRemarks">Remarks:</label>
@@ -191,7 +196,7 @@
                                     });
 
                                     document.getElementById('submitCloseService').addEventListener('click', function () {
-                                        const rating = document.getElementById('serviceRating').value;
+                                        const rating = parseFloat(document.getElementById('serviceRating').value); // Parse rating as float
                                         const remarks = document.getElementById('serviceRemarks').value;
                                         const requestId = document.getElementById('requestId').value;
 

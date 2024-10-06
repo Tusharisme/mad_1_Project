@@ -54,8 +54,8 @@
                             </select>
                             <!-- New section for rating filtering -->
                             <div class="input-group me-2">
-                                <input type="number" class="form-control" name="rating" placeholder="Average Rating"
-                                    min="1" max="5" />
+                                <input type="number" class="form-control" step="0.1" name="rating"
+                                    placeholder="Average Rating" min="1" max="5" />
                                 <select class="form-select" name="rating_condition">
                                     <option value="high">Above or Equal</option>
                                     <option value="low">Below or Equal</option>
@@ -108,15 +108,17 @@
                         <th scope="col">ID</th>
                         <th scope="col">Service Name</th>
                         <th scope="col">Base Price</th>
+                        <th scope="col">No. of Professionals</th> <!-- New Column -->
                         <th scope="col">Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for service in services %}
+                    {% for service, professional_count in services %}
                     <tr>
                         <td><a href="{{ url_for('service_details', service_id=service.id) }}">{{ service.id }}</a></td>
                         <td>{{ service.name }}</td>
                         <td>{{ service.base_price }}</td>
+                        <td>{{ professional_count }}</td> <!-- Display Professional Count -->
                         <td>
                             <button type="button" class="btn btn-success" data-bs-toggle="modal"
                                 data-bs-target="#editServiceModal" data-id="{{ service.id }}"
@@ -136,6 +138,7 @@
             {% else %}
             <h3>No services available</h3>
             {% endif %}
+
 
 
             <br>
@@ -162,7 +165,8 @@
                                 <input type="text" name="description" class="form-control" id="description" />
                                 <label for="base_price" class="form-label"><b>Base Price</b></label>
                                 <input type="text" class="form-control" name="base_price" id="base_price" />
-                                <label for="base_time_required" class="form-label"><b>Base Time Required</b></label>
+                                <label for="base_time_required" class="form-label"><b>Base Time Required
+                                        (hours)</b></label>
                                 <input type="text" class="form-control" name="base_time_required"
                                     id="base_time_required" />
                             </div>
@@ -194,7 +198,7 @@
                                 <label for="edit_base_price" class="form-label"><b>Base Price</b></label>
                                 <input type="text" class="form-control" name="base_price" id="edit_base_price" />
                                 <label for="edit_base_time_required" class="form-label"><b>Base Time
-                                        Required</b></label>
+                                        Required (hours)</b></label>
                                 <input type="text" class="form-control" name="base_time_required"
                                     id="edit_base_time_required" />
 
@@ -322,7 +326,7 @@
                                 <p><b>Service:</b> <span id="professional_service"></span></p>
                                 <p><b>Address:</b> <span id="professional_address"></span></p>
                                 <p><b>Pincode:</b> <span id="professional_pincode"></span></p>
-                                <p><b>Verified Status:</b> <span id="professional_vstatus"></span></p>
+                                <!-- <p><b>Verified Status:</b> <span id="professional_vstatus"></span></p> -->
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -355,7 +359,7 @@
                             document.getElementById('professional_service').textContent = data.service_type;
                             document.getElementById('professional_address').textContent = data.address;
                             document.getElementById('professional_pincode').textContent = data.pin_code;
-                            document.getElementById('professional_vstatus').textContent = data.verified_status;
+                            // document.getElementById('professional_vstatus').textContent = data.verified_status;
 
                             // Set form action and button label
                             var form = document.getElementById('approveRejectForm');

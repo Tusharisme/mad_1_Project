@@ -117,8 +117,8 @@
                                             <p><strong>Address:</strong> <span id="modalAddress"></span></p>
                                             <div class="form-group">
                                                 <label for="customerRating">Customer Rating (1 to 5):</label>
-                                                <input type="number" class="form-control" id="customerRating" min="1"
-                                                    max="5" required>
+                                                <input type="number" class="form-control" id="customerRating" step="0.1"
+                                                    min="1" max="5" required>
                                             </div>
                                             <div class="form-group">
                                                 <label for="customerRemark">Remarks:</label>
@@ -156,11 +156,11 @@
                                     });
 
                                     document.getElementById('submitCloseService').addEventListener('click', function () {
-                                        const rating = document.getElementById('customerRating').value;
+                                        const rating = parseFloat(document.getElementById('customerRating').value); // Parse rating as float
                                         const remarks = document.getElementById('customerRemark').value;
                                         const requestId = document.getElementById('requestId').value;
 
-                                        if (rating < 1 || rating > 5 || remarks.trim() === "") {
+                                        if (isNaN(rating) || rating < 1 || rating > 5) {
                                             alert("Please provide valid inputs: rating between 1 and 5, and remarks.");
                                             return;
                                         }
@@ -231,7 +231,7 @@
                         <th>Location (with pin code)</th>
                         <th>Closing Date</th>
                         <th>My Rating</th>
-                        <th>Customer Rating</th>
+                        <th>Customer's Rating</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -46,14 +46,14 @@
                             {% if professional_service.custom_time_required %}
                             {{ professional_service.custom_time_required }} mins
                             {% else %}
-                            {{ service.base_time_required  }}
+                            {{ service.base_time_required  }} hours
                             {% endif %}
                         </p>
 
                         <form action="{{ url_for('book_service') }}" method="POST">
                             <input type="hidden" name="service_id" value="{{ service.id }}">
                             <input type="hidden" name="professional_id" value="{{ professional.id }}">
-                            <button type="submit" class="btn btn-secondary">Book Service</button>
+                            <button type="submit" class="btn btn-info">Book Service</button>
                         </form>
                     </div>
                 </div>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A to Z Household Services</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hero-section {
+            background-image: url("static/images/hero_image.jpg");
+            background-size: cover;
+            background-position: center;
+            height: 80vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .category-section {
+            margin-top: 30px;
+        }
+
+        .category-card {
+            border: none;
+        }
+
+        .category-img {
+            width: 250px;
+            height: 250px;
+        }
+
+        .navbar-nav .nav-link {
+            color: #fff !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">A to Z Household Services</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('user_login') }}">Login</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('user_signup') }}">Sign Up</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('prof_register') }}">Register as Professional </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero-section text-center text-white">
+        <div>
+            <h1>Home Services at Your Doorstep</h1>
+            <p>Find the best service professionals for all your household needs</p>
+        </div>
+    </div>
+
+    <!-- Categories Section -->
+    <div class="container category-section">
+        <h3 class="text-center">What are you looking for?</h3>
+        <div class="row text-center mt-4">
+            <!-- Category 1 -->
+            <div class="col-md-3">
+                <div class="card category-card">
+                    <img src="/static/images/women_spa.jpg" class="card-img-top category-img mx-auto" alt="Salon">
+                    <div class="card-body">
+                        <p class="card-text"><b>Women's Salon & Spa</b></p>
+                    </div>
+                </div>
+            </div>
+            <!-- Category 2 -->
+            <div class="col-md-3">
+                <div class="card category-card">
+                    <img src="/static/images/man_spa.jpg" class="card-img-top category-img mx-auto" alt="Massage">
+                    <div class="card-body">
+                        <p class="card-text"><b>Men's Salon & Massage</b></p>
+                    </div>
+                </div>
+            </div>
+            <!-- Category 3 -->
+            <div class="col-md-3">
+                <div class="card category-card">
+                    <img src="/static/images/ac_service.jpg" class="card-img-top category-img mx-auto" alt="AC Repair">
+                    <div class="card-body">
+                        <p class="card-text"><b>AC & Appliance Repair</b></p>
+                    </div>
+                </div>
+            </div>
+            <!-- Category 4 -->
+            <div class="col-md-3">
+                <div class="card category-card">
+                    <img src="/static/images/pest_control.jpg" class="card-img-top category-img mx-auto" alt="Cleaning">
+                    <div class="card-body">
+                        <p class="card-text"><b>Cleaning & Pest Control</b></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row text-center mt-4">
+            <!-- Category 5 -->
+            <div class="col-md-3">
+                <div class="card category-card">
+                    <img src="/static/images/elect.jpg" class="card-img-top category-img mx-auto" alt="Electrician">
+                    <div class="card-body">
+                        <p class="card-text"><b>Electrician, Plumber & Carpenter</b></p>
+                    </div>
+                </div>
+            </div>
+            <!-- Category 6 -->
+            <div class="col-md-3">
+                <div class="card category-card">
+                    <img src="/static/images/water.jpg" class="card-img-top category-img mx-auto" alt="Water Purifier">
+                    <div class="card-body">
+                        <p class="card-text"><b>Water Purifier</b></p>
+                    </div>
+                </div>
+            </div>
+            <!-- Category 7 -->
+            <div class="col-md-3">
+                <div class="card category-card">
+                    <img src="/static/images/lock.jpg" class="card-img-top category-img mx-auto" alt="Locks">
+                    <div class="card-body">
+                        <p class="card-text"><b>Smart Locks</b></p>
+                    </div>
+                </div>
+            </div>
+            <!-- Category 8 -->
+            <div class="col-md-3">
+                <div class="card category-card">
+                    <img src="/static/images/paint.jpg" class="card-img-top category-img mx-auto" alt="Painting">
+                    <div class="card-body">
+                        <p class="card-text"><b>Painting & Waterproofing</b></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Footer -->
+    <footer class="bg-light text-center py-3">
+        <div class="container">
+            <p>&copy; 2024 A to Z Household Services. All rights reserved.</p>
+        </div>
+    </footer>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

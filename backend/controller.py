@@ -14,7 +14,7 @@ from datetime import datetime
 
 @app.route("/")
 def home():
-    return "Hellloooo"
+    return render_template("homepage.html")
 
 
 @app.route("/logout")
@@ -86,34 +86,48 @@ def admin_dashboard():
     if (
         "username" in session and session.get("role") == 0
     ):  # Check if logged in as admin
-        services = Service.query.all()
+        # Fetch services and count the number of professionals offering each service
+        services_with_pro_count = (
+            db.session.query(
+                Service,
+                func.count(ProfessionalService.professional_id).label(
+                    "professional_count"
+                ),
+            )
+            .outerjoin(
+                ProfessionalService, Service.id == ProfessionalService.service_id
+            )
+            .group_by(Service.id)
+            .all()
+        )
 
         # Fetch all professionals with their full details
-        professionals = db.session.query(
-            Service_Professional
-        ).all()  # Ensure you're fetching the complete object
+        professionals = db.session.query(Service_Professional).all()
 
-        service_requests = Service_Request.query.all()  # Fetch all service requests
+        # Fetch all service requests
+        service_requests = Service_Request.query.all()
+
+        # Fetch all customers
         customers = Customer.query.filter(Customer.role == 1).all()
+
         # Calculate the average rating for professionals
         for professional in professionals:
-            professional_id = (
-                professional.id
-            )  # This should now correctly reference the professional object
-            professional.average_rating = update_professional_rating(
-                professional_id
-            )  # Store the average rating
+            professional_id = professional.id
+            professional.average_rating = update_professional_rating(professional_id)
+
+        # Calculate the average rating for customers
         for customer in customers:
             customer_id = customer.id
             customer.average_rating = update_customer_rating(customer_id)
 
+        # Pass services with professional count to the template
         return render_template(
             "admin_dashboard.html",
             admin=session["username"],
-            services=services,
+            services=services_with_pro_count,
             professionals=professionals,
             customers=customers,
-            service_requests=service_requests,  # Pass service requests to the template
+            service_requests=service_requests,
         )
     else:
         return redirect(url_for("user_login"))  # Redirect to login if not an admin
@@ -201,9 +215,8 @@ def search_admin():
                 results = Service_Professional.query.filter(
                     Service_Professional.experience == query
                 ).all()
-            elif (
-                criteria == "average_rating"
-            ):  # Handle average_rating with existing query
+            elif criteria == "average_rating":
+                # Handle average_rating with existing query
                 if rating_filter:  # Check if rating_filter is not empty
                     if rating_condition == "high":
                         results = Service_Professional.query.filter(
@@ -214,8 +227,11 @@ def search_admin():
                             Service_Professional.average_rating <= float(rating_filter)
                         ).all()
                 else:
-                    # If rating_filter is empty, return all professionals
+                    # If rating_filter is empty and criteria is "average_rating", return all professionals
                     results = Service_Professional.query.all()
+            else:
+                # If criteria is empty, return all professionals
+                results = Service_Professional.query.all()
 
     elif entity == "service_request":
         if not query:
@@ -749,7 +765,12 @@ def search_service():
     services_query = Service.query
 
     if query:
-        services_query = services_query.filter(Service.name.ilike(f"%{query}%"))
+        services_query = services_query.filter(
+            Service.name.ilike(f"%{query}%") | Service.description.ilike(f"%{query}%")
+        )
+        search_type = "query"
+    else:
+        search_type = None
 
     if pin_code:
         # Join with Service_Professional to filter by pin code
@@ -761,19 +782,46 @@ def search_service():
                 Service_Professional.verified_status == "approved",
             )
         )
+        search_type = "pin_code"
 
     if rating is not None:  # Check if rating is provided
         # Filter professionals based on their average rating
+        # First, filter by average rating
         services_query = (
             services_query.join(ProfessionalService)
             .join(Service_Professional)
-            .filter(Service_Professional.average_rating >= rating)
+            .filter(
+                (
+                    Service_Professional.average_rating >= rating
+                )  # Condition for average rating
+                | (
+                    Service_Professional.id.in_(  # Include those who have previously received the required rating
+                        db.session.query(Service_Request.professional_id).filter(
+                            Service_Request.rating >= rating
+                        )  # Past rating filter
+                    )
+                )
+            )
         )
+        search_type = "rating"
 
     services = services_query.all()
 
+    # Set the category message based on the search type
+    if search_type == "query":
+        category_message = f"Search results for '{query}'"
+    elif search_type == "pin_code":
+        category_message = f"Search results for pin code '{pin_code}'"
+    elif search_type == "rating":
+        category_message = f"Search results for rating '{rating}'"
+    else:
+        category_message = "No search criteria provided."
+
     return render_template(
-        "services_by_category.html", services=services, category="Search Results"
+        "services_by_category.html",
+        services=services,
+        category=category_message,  # Use the constructed category message
+        query=query,
     )
 
 

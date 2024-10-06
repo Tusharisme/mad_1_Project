@@ -7,12 +7,16 @@
     <title>{{ category }}</title>
     <link rel="stylesheet" href="/static/style.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"></script>
+
 </head>
 
 <body>
     <div class="container-fluid">
         <h3>{{ category }}</h3>
         <div class="row">
+            {% if results %}
             {% if entity == "service" %}
             {% for service in results %}
             <div class="col-md-4 ">
@@ -21,10 +25,13 @@
                         <h5 class="card-title">{{ service.name }}</h5>
                         <p class="card-text">Price: ${{ service.base_price }}</p>
                         <p class="card-text">Description: {{ service.description }}</p>
-                        <form action="{{ url_for('edit_service', service_id=service.id) }}" method="GET">
-                            <button type="submit" class="btn btn-success">Edit</button>
-                        </form>
-                        <form action="{{ url_for('delete_service', service_id=service.id) }}" method="POST">
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                            data-bs-target="#editServiceModal" data-id="{{ service.id }}" data-name="{{ service.name }}"
+                            data-description="{{ service.description }}" data-price="{{ service.base_price }}"
+                            data-time="{{ service.base_time_required }}">Edit</button>
+                        <b>||</b>
+                        <form action="{{ url_for('delete_service', service_id=service.id) }}" method="POST"
+                            style="display:inline;">
                             <button type="submit" class="btn btn-danger">Delete</button>
                         </form>
                     </div>
@@ -72,9 +79,75 @@
             </div>
             {% endfor %}
             {% endif %}
+            {% else %}
+            <div class="col-12">
+                <div class="alert alert-warning" role="alert">
+                    No results found! We couldn't find what you were looking for. Please check your
+                    keywords again.
+                </div>
+            </div>
+            {% endif %}
         </div>
+        <!-- Modal for editing a service -->
+        <form id="editServiceForm" action="" method="POST">
+            <div class="modal fade" id="editServiceModal" tabindex="-1" aria-labelledby="editServiceModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editServiceModalLabel">Edit Service</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label for="edit_service_name" class="form-label"><b>Service Name</b></label>
+                            <input type="text" class="form-control" name="service_name" id="edit_service_name" />
+                            <label for="edit_description" class="form-label"><b>Description</b></label>
+                            <input type="text" name="description" class="form-control" id="edit_description" />
+                            <label for="edit_base_price" class="form-label"><b>Base Price</b></label>
+                            <input type="text" class="form-control" name="base_price" id="edit_base_price" />
+                            <label for="edit_base_time_required" class="form-label"><b>Base Time
+                                    Required (hours)</b></label>
+                            <input type="text" class="form-control" name="base_time_required"
+                                id="edit_base_time_required" />
 
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
 
+        <script>
+
+            // Get modal element
+            var editServiceModal = document.getElementById('editServiceModal');
+
+            // Add an event listener to trigger when the modal is shown
+            editServiceModal.addEventListener('show.bs.modal', function (event) {
+                // Button that triggered the modal
+                var button = event.relatedTarget;
+
+                // Extract info from data-* attributes
+                var serviceId = button.getAttribute('data-id');
+                var serviceName = button.getAttribute('data-name');
+                var serviceDescription = button.getAttribute('data-description');
+                var servicePrice = button.getAttribute('data-price');
+                var serviceTime = button.getAttribute('data-time');
+
+                // Update the form action to include the service ID
+                var form = document.getElementById('editServiceForm');
+                form.action = '/services/edit/' + serviceId;
+
+                // Update the modal's content with current service data
+                document.getElementById('edit_service_name').value = serviceName;
+                document.getElementById('edit_description').value = serviceDescription;
+                document.getElementById('edit_base_price').value = servicePrice;
+                document.getElementById('edit_base_time_required').value = serviceTime; // Update to the new ID
+            });
+        </script>
         <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
     </div>
 </body>
