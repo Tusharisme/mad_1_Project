@@ -48,16 +48,17 @@
                 {% endif %}
                 <br><br>
                 <!-- <strong>Action:</strong> {{ professional.time_required }} mins <br><br> -->
-                <!-- Document Section -->
                 <strong>Uploaded Document:</strong>
                 {% if professional.document %}
                 <!-- Assuming the document is stored in '/uploads/' folder and accessible via static files -->
-                <a href="{{ url_for('static', filename='uploads/' + professional.document) }}" target="_blank">
+                <a href="{{ url_for('static', filename='uploads/' + professional.document.split('/')[-1]) }}"
+                    target="_blank">
                     View Document
                 </a>
                 {% else %}
                 No document uploaded.
                 {% endif %}
+
             </p>
             <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
         </div>
