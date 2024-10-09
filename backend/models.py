@@ -102,6 +102,7 @@ class Service_Request(db.Model):
     )
 
     date_of_request = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    # date_of_request = db.Column(db.DateTime)  # Store only the date
     date_of_completion = db.Column(db.DateTime)
     service_status = db.Column(
         db.String, nullable=False

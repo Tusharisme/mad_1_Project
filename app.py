@@ -12,7 +12,7 @@ def init_app():
     service_app.config["SQLALCHEMY_DATABASE_URI"] = (
         "sqlite:///service.sqlite3"  # Database config
     )
-    service_app.config["UPLOAD_FOLDER"] = "uploads/"  # File upload folder
+    service_app.config["UPLOAD_FOLDER"] = "static/uploads/"  # File upload folder
 
     # Ensure the upload folder exists
     import os

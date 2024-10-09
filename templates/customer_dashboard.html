@@ -112,7 +112,9 @@
                 <tbody>
                     {% for request in service_requests %}
                     <tr>
-                        <td>{{ request.id }}</td>
+                        <td> <a href="{{ url_for('service_request_customer', request_id=request.id) }}">
+                                {{ request.id }}
+                            </a></td>
                         <td>{{ request.service.name }}</td>
                         <td>{{ request.professional.name }}</td>
                         <td>{{ request.professional.phone_no }}</td>

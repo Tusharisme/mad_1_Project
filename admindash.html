@@ -1799,3 +1799,45 @@ document.addEventListener('DOMContentLoaded', function () {
 
 #     # return {"message": "Service request closed and rated successfully"}, 200
 #     return jsonify(redirect=url_for("professional_dashboard"))
+
+
+document.getElementById('submitCloseService').addEventListener('click', function () {
+    const rating = parseFloat(document.getElementById('customerRating').value);
+    const remarks = document.getElementById('customerRemark').value;
+    const requestId = document.getElementById('requestId').value;
+
+    if (isNaN(rating) || rating < 1 || rating > 5) {
+        alert("Please provide valid inputs: rating between 1 and 5, and remarks.");
+        return;
+    }
+    if (!remarks.trim()) {
+        alert("Please provide remarks.");
+        return;
+    }
+
+    fetch('/close_service_professional', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            requestId: requestId,
+            customerRating: rating,
+            customerRemark: remarks
+        }),
+    })
+        .then(response => {
+            if (response.ok) {
+                // Refresh the page on successful submission
+                window.location.href = '/professional_dashboard';
+            } else {
+                return response.json().then(data => {
+                    alert("An error occurred: " + data.message);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+});

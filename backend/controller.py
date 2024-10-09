@@ -360,7 +360,6 @@ def user_signup():
     return render_template("signup.html")
 
 
-# Function to save the uploaded document
 def save_document(file):
     # Get the filename and ensure it's secure
     filename = secure_filename(file.filename)
@@ -369,10 +368,14 @@ def save_document(file):
     upload_folder = current_app.config["UPLOAD_FOLDER"]
     file_path = os.path.join(upload_folder, filename)
 
+    # Ensure that the uploads directory exists
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
     # Save the file
     file.save(file_path)
 
-    return file_path  # Return the file path for storing in the database
+    return filename  # Return just the filename for storing in the database
 
 
 @app.route("/register", methods=["GET", "POST"])  # for the professional
@@ -551,6 +554,70 @@ def fetch_all_professional():
     return professional_list
 
 
+@app.route("/service_request/<int:request_id>", methods=["GET"])
+def service_request_details(request_id):
+    service_request = Service_Request.query.get(request_id)
+
+    if not service_request:
+        flash(f"Service request with ID {request_id} not found.", "danger")
+        return redirect(url_for("admin_dashboard"))
+
+    # Fetch related customer, professional, and service details
+    customer = Customer.query.get(service_request.customer_id)
+    professional = Service_Professional.query.get(service_request.professional_id)
+    service = Service.query.get(service_request.service_id)
+
+    return render_template(
+        "service_request_details.html",
+        service_request=service_request,
+        customer=customer,
+        professional=professional,
+        service=service,
+    )
+
+@app.route("/service_request_customer/<int:request_id>", methods=["GET"])
+def service_request_customer(request_id):
+    service_request = Service_Request.query.get(request_id)
+
+    if not service_request:
+        flash(f"Service request with ID {request_id} not found.", "danger")
+        return redirect(url_for("customer_dashboard"))
+
+    # Fetch related customer, professional, and service details
+    customer = Customer.query.get(service_request.customer_id)
+    professional = Service_Professional.query.get(service_request.professional_id)
+    service = Service.query.get(service_request.service_id)
+
+    return render_template(
+        "service_request_customer.html",
+        service_request=service_request,
+        customer=customer,
+        professional=professional,
+        service=service,
+    )
+    
+@app.route("/service_request_professional/<int:request_id>", methods=["GET"])
+def service_request_professional(request_id):
+    service_request = Service_Request.query.get(request_id)
+
+    if not service_request:
+        flash(f"Service request with ID {request_id} not found.", "danger")
+        return redirect(url_for("professional_dashboard"))
+
+    # Fetch related customer, professional, and service details
+    customer = Customer.query.get(service_request.customer_id)
+    professional = Service_Professional.query.get(service_request.professional_id)
+    service = Service.query.get(service_request.service_id)
+
+    return render_template(
+        "service_request_professional.html",
+        service_request=service_request,
+        customer=customer,
+        professional=professional,
+        service=service,
+    )
+
+
 @app.route("/professional/<int:professional_id>", methods=["GET"])
 def professional_details(professional_id):
     # Fetch the service details using the provided service ID
@@ -600,20 +667,29 @@ def reject_professional(professional_id):
 @app.route("/professional/delete/<int:professional_id>", methods=["POST"])
 def delete_professional(professional_id):
     professional = Service_Professional.query.get(professional_id)
+
     if professional:
-        db.session.delete(
-            professional
-        )  # This will also delete all related service requests
+        # Check if the professional has an uploaded document
+        if professional.document:
+            document_path = os.path.join(
+                current_app.root_path, "static", "uploads", professional.document
+            )
+
+            # Ensure the file exists before trying to delete it
+            if os.path.exists(document_path):
+                os.remove(document_path)  # Delete the document from the file system
+
+        # Proceed to delete the professional from the database
+        db.session.delete(professional)
         db.session.commit()
+
         flash(
             "Professional and related service requests deleted successfully!", "success"
         )
     else:
         flash("Professional not found.", "danger")
 
-    return redirect(
-        url_for("admin_dashboard")
-    )  # Redirect to admin dashboard or appropriate route
+    return redirect(url_for("admin_dashboard"))
 
 
 @app.route("/api/request_service", methods=["POST"])
@@ -759,7 +835,7 @@ def book_service():
             service_id=service_id,
             customer_id=customer_id,
             professional_id=professional_id,
-            date_of_request=datetime.utcnow(),
+            date_of_request=datetime.utcnow().date(),
             requested_date=requested_date_obj,  # Save the requested date as date object
             requested_time=requested_time_obj,  # Save the requested time as time object
             service_status="requested",

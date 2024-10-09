@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Service Request Details</title>
+    <!-- Include Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Your custom CSS -->
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <!-- Include Bootstrap JS and Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"></script>
+
+    <div id="container">
+        <div id="panel">
+            <h1>Service Request Details</h1>
+            <br>
+
+            <p><strong>Request ID:</strong> {{ service_request.id }} <br><br>
+                <strong>Customer Name:</strong> {{ customer.name }} <br><br>
+                <strong>Service Name:</strong> {{ service.name }} <br><br>
+                <strong>Professional Name:</strong> {{ professional.name }} <br><br>
+                <strong>Status:</strong> {{ service_request.service_status }} <br><br>
+                <strong>Date of Request:</strong> {{ service_request.date_of_request.strftime('%Y-%m-%d') }} <br><br>
+                <strong>Date of Completion:</strong>
+                {% if service_request.date_of_completion %}
+                {{ service_request.date_of_completion }}
+                {% else %}
+                Not Completed
+                {% endif %}
+                <br><br>
+                <strong>Date of Service:</strong> {{ service_request.requested_date }} <br><br>
+                <strong>Time of Service:</strong> {{ service_request.requested_time }} <br><br>
+                {% if service_request.service_status =="closed" %}
+                <strong>Professional Rating:</strong>
+                {% if service_request.rating %}
+                {{ service_request.rating }}
+                {% else %}
+                No rating
+                {% endif %}
+                <br><br>
+                <strong>Professional Remarks:</strong>
+                {% if service_request.remarks %}
+                {{ service_request.remarks }}
+                {% else %}
+                No remarks
+                {% endif %}
+                <br><br>
+                <strong>Customer Rating:</strong>
+                {% if service_request.customer_rating %}
+                {{ service_request.customer_rating }}
+                {% else %}
+                Not Rated
+                {% endif %}
+                <br><br>
+                <strong>Customer Remarks:</strong>
+                {% if service_request.customer_remarks %}
+                {{ service_request.customer_remarks }}
+                {% else %}
+                No remarks
+                {% endif %}
+                {% endif %}
+
+            </p>
+
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+
+</html>

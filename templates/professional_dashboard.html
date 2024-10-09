@@ -83,7 +83,9 @@
                 <tbody>
                     {% for request in today_services %}
                     <tr>
-                        <td>{{ request.id }}</td>
+                        <td><a href="{{ url_for('service_request_customer', request_id=request.id) }}">
+                                {{ request.id }}
+                            </a></td>
                         <td>{{ request.customer.name }}</td>
                         <td>{{ request.customer.phone_no }}</td>
                         <td>{{ request.customer.address ~ ', ' ~ request.customer.pin_code }}</td>
@@ -127,7 +129,7 @@
             {% else %}
             <p>No services requested today.</p>
             {% endif %}
-            
+
             <!-- Modal for closing the service and rating the customer -->
             <div class="modal fade" id="closeServiceModal" tabindex="-1" role="dialog"
                 aria-labelledby="closeServiceModalLabel" aria-hidden="true">
@@ -207,6 +209,10 @@
 
                     if (isNaN(rating) || rating < 1 || rating > 5) {
                         alert("Please provide valid inputs: rating between 1 and 5, and remarks.");
+                        return;
+                    }
+                    if (!remarks.trim()) {
+                        alert("Please provide remarks.");
                         return;
                     }
 
@@ -294,38 +300,40 @@
                         });
                 });
             </script>
-             <!-- Closed Services Section -->
-             <h4>Closed Services</h4>
-             {% if closed_services %}
-             <table class="table table-info table-hover">
-                 <thead>
-                     <tr>
-                         <th>ID</th>
-                         <th>Customer Name</th>
-                         <th>Contact</th>
-                         <th>Location (with pin code)</th>
-                         <th>Closing Date</th>
-                         <th>My Rating</th>
-                         <th>Customer's Rating</th>
-                     </tr>
-                 </thead>
-                 <tbody>
-                     {% for closed_service in closed_services %}
-                     <tr>
-                         <td>{{ closed_service.id }}</td>
-                         <td>{{ closed_service.customer.name }}</td>
-                         <td>{{ closed_service.customer.phone_no }}</td>
-                         <td>{{ closed_service.customer.address ~ ','~ closed_service.customer.pin_code}}</td>
-                         <td>{{ closed_service.date_of_completion.strftime('%Y-%m-%d') }}</td>
-                         <td>{{ closed_service.rating }}</td>
-                         <td>{{ closed_service.customer_rating }}</td>
-                     </tr>
-                     {% endfor %}
-                 </tbody>
-             </table>
-             {% else %}
-             <p>No closed services yet.</p>
-             {% endif %}
+            <!-- Closed Services Section -->
+            <h4>Closed Services</h4>
+            {% if closed_services %}
+            <table class="table table-info table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Customer Name</th>
+                        <th>Contact</th>
+                        <th>Location (with pin code)</th>
+                        <th>Closing Date</th>
+                        <th>My Rating</th>
+                        <th>Customer's Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for closed_service in closed_services %}
+                    <tr>
+                        <td><a href="{{ url_for('service_request_customer', request_id=closed_service.id) }}">
+                                {{ closed_service.id }}
+                            </a></td>
+                        <td>{{ closed_service.customer.name }}</td>
+                        <td>{{ closed_service.customer.phone_no }}</td>
+                        <td>{{ closed_service.customer.address ~ ','~ closed_service.customer.pin_code}}</td>
+                        <td>{{ closed_service.date_of_completion.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ closed_service.rating }}</td>
+                        <td>{{ closed_service.customer_rating }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No closed services yet.</p>
+            {% endif %}
         </div>
     </div>
 </body>

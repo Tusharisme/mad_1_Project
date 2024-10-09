@@ -127,7 +127,7 @@
                                 data-time="{{ service.base_time_required }}">Edit</button>
                             <b>||</b>
                             <form action="{{ url_for('delete_service', service_id=service.id) }}" method="POST"
-                                style="display:inline;">
+                                style="display:inline;" onsubmit="return confirmCancel();">
                                 <button type="submit" class="btn btn-danger">Delete</button>
                             </form>
                         </td>
@@ -138,7 +138,42 @@
             {% else %}
             <h3>No services available</h3>
             {% endif %}
-
+            <!-- JavaScript to Show Confirmation Before Delete -->
+            <script>
+                function confirmCancel() {
+                    return confirm("Are you sure you want to delete this service?");
+                }
+            </script>
+            <!-- JavaScript to Show Confirmation Before Delete -->
+            <script>
+                function confirmDeleteProfessional() {
+                    return confirm("Are you sure you want to delete this Professional?");
+                }
+            </script>
+            <!-- JavaScript to Show Confirmation Before block a professional -->
+            <script>
+                function confirmBlockProfessional() {
+                    return confirm("Are you sure you want to block this Professional?");
+                }
+            </script>
+            <!-- JavaScript to Show Confirmation Before block a professional -->
+            <script>
+                function confirmUnBlockProfessional() {
+                    return confirm("Are you sure you want to unblock this Professional?");
+                }
+            </script>
+            <!-- JavaScript to Show Confirmation Before block a professional -->
+            <script>
+                function confirmBlockCustomer() {
+                    return confirm("Are you sure you want to block this Customer?");
+                }
+            </script>
+            <!-- JavaScript to Show Confirmation Before block a professional -->
+            <script>
+                function confirmUnBlockCustomer() {
+                    return confirm("Are you sure you want to unblock this Customer?");
+                }
+            </script>
 
 
             <br>
@@ -265,19 +300,19 @@
                             {% if professional.verified_status == "approved" %}
                             <form method="POST"
                                 action="{{ url_for('block_professional', professional_id=professional.id) }}"
-                                style="display:inline;">
+                                style="display:inline;" onsubmit="return confirmBlockProfessional();">
                                 <button type="submit" class="btn btn-danger">Block</button>
                             </form>
                             <b>||</b>
                             <form method="POST"
                                 action="{{ url_for('unblock_professional', professional_id=professional.id) }}"
-                                style="display:inline;">
+                                style="display:inline;" onsubmit="return confirmUnBlockProfessional();">
                                 <button type="submit" class="btn btn-success">Unblock</button>
                             </form>
                             <b>||</b>
                             <form action="{{ url_for('delete_professional', professional_id=professional.id) }}"
-                                method="POST" style="display:inline;">
-                                <button type="submit" class="btn btn-warning">Delete</button>
+                                method="POST" style="display:inline;" onsubmit="return confirmDeleteProfessional();">
+                                <button type="submit" class="btn btn-danger">Delete</button>
                             </form>
                             {%else%}
                             <button type="button" class="btn btn-success" data-bs-toggle="modal"
@@ -293,7 +328,7 @@
                             </button>
                             <b>||</b>
                             <form action="{{ url_for('delete_professional', professional_id=professional.id) }}"
-                                method="POST" style="display:inline;">
+                                method="POST" style="display:inline;" onsubmit="return confirmDeleteProfessional();">
                                 <button type="submit" class="btn btn-danger">Delete</button>
                             </form>
                         </td>
@@ -395,12 +430,12 @@
                         <td>{{ customer.average_rating or 'N/A' }}</td> <!-- Display Average Rating -->
                         <td>
                             <form action="{{ url_for('block_customer', customer_id=customer.id) }}" method="POST"
-                                style="display:inline;">
+                                style="display:inline;" onclick="confirmBlockCustomer();">
                                 <button type="submit" class="btn btn-danger">Block</button>
                             </form>
                             <b>||</b>
                             <form action="{{ url_for('unblock_customer', customer_id=customer.id) }}" method="POST"
-                                style="display:inline;">
+                                style="display:inline;" onclick="confirmUnBlockCustomer();">
                                 <button type="submit" class="btn btn-success">Unblock</button>
                             </form>
                         </td>
@@ -429,12 +464,14 @@
                 <tbody>
                     {% for request in service_requests %}
                     <tr>
-                        <td>{{ request.id }}</td>
+                        <td> <a href="{{ url_for('service_request_details', request_id=request.id) }}">
+                                {{ request.id }}
+                            </a></td>
                         <td>{{ request.customer_id }}</td>
                         <td>{{ request.service_id }}</td>
                         <td>{{ request.professional_id }}</td>
                         <td>{{ request.service_status }}</td>
-                        <td>{{ request.date_of_request }}</td>
+                        <td>{{ request.date_of_request.strftime('%Y-%m-%d') }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
