@@ -575,6 +575,7 @@ def service_request_details(request_id):
         service=service,
     )
 
+
 @app.route("/service_request_customer/<int:request_id>", methods=["GET"])
 def service_request_customer(request_id):
     service_request = Service_Request.query.get(request_id)
@@ -595,7 +596,8 @@ def service_request_customer(request_id):
         professional=professional,
         service=service,
     )
-    
+
+
 @app.route("/service_request_professional/<int:request_id>", methods=["GET"])
 def service_request_professional(request_id):
     service_request = Service_Request.query.get(request_id)
@@ -855,51 +857,46 @@ def search_service():
     rating = request.args.get("rating")
     query = request.args.get("query")
 
-    # Start building the query for services
+    # Initialize the queries for services and professionals
     services_query = Service.query
+    professionals_query = Service_Professional.query
 
+    search_type = None
+
+    # Filter by query (service name or description)
     if query:
         services_query = services_query.filter(
             Service.name.ilike(f"%{query}%") | Service.description.ilike(f"%{query}%")
         )
         search_type = "query"
-    else:
-        search_type = None
 
+    # Filter by pin code
     if pin_code:
-        # Join with Service_Professional to filter by pin code
-        services_query = (
-            services_query.join(ProfessionalService)
-            .join(Service_Professional)
-            .filter(
-                Service_Professional.pin_code == pin_code,
-                Service_Professional.verified_status == "approved",
-            )
+        professionals_query = professionals_query.filter(
+            Service_Professional.pin_code == pin_code,
+            Service_Professional.verified_status == "approved",
         )
         search_type = "pin_code"
 
-    if rating is not None:  # Check if rating is provided
-        # Filter professionals based on their average rating
-        # First, filter by average rating
-        services_query = (
-            services_query.join(ProfessionalService)
-            .join(Service_Professional)
-            .filter(
-                (
-                    Service_Professional.average_rating >= rating
-                )  # Condition for average rating
-                | (
-                    Service_Professional.id.in_(  # Include those who have previously received the required rating
-                        db.session.query(Service_Request.professional_id).filter(
-                            Service_Request.rating >= rating
-                        )  # Past rating filter
+    # Filter by rating
+    if rating is not None:
+        rating_value = float(rating)  # Assuming the rating value is a number
+        professionals_query = professionals_query.filter(
+            (Service_Professional.average_rating >= rating)  # Check for average rating
+            | (
+                Service_Professional.id.in_(
+                    db.session.query(Service_Request.professional_id).filter(
+                        Service_Request.rating
+                        >= rating  # Check past ratings if no average
                     )
                 )
             )
         )
         search_type = "rating"
 
+    # Execute the queries
     services = services_query.all()
+    professionals = professionals_query.all()
 
     # Set the category message based on the search type
     if search_type == "query":
@@ -914,7 +911,8 @@ def search_service():
     return render_template(
         "services_by_category.html",
         services=services,
-        category=category_message,  # Use the constructed category message
+        professionals=professionals,
+        category=category_message,
         query=query,
     )
 
@@ -1017,29 +1015,53 @@ def professional_dashboard():
 
 @app.route("/search_customers", methods=["GET"])
 def search_customers():
+    entity = request.args.get("entity")
     pin_code = request.args.get("pin_code")
     customer_name = request.args.get("customer_name")
-    closing_date = request.args.get("date")
+    date_of_service = request.args.get("date_of_service")
+    date_of_closing = request.args.get("date_of_closing")
+    # query = request.args.get("query")
 
     service_requests_query = Service_Request.query.filter(
         Service_Request.professional_id == session["professional_id"]
     )
 
-    # Filter by closing date if provided
-    if closing_date:
+    # Filter by query (service name or description)
+    # if query:
+    #     service_requests_query = service_requests_query.filter(
+    #         Customer.name.ilike(f"%{query}%")
+    #     )
+
+    # Filter by entity type
+    if entity == "pin_code" and pin_code:
+        service_requests_query = service_requests_query.filter(
+            Service_Request.customer.has(pin_code=pin_code)
+        )
+
+    elif entity == "customer_name" and customer_name:
+        service_requests_query = service_requests_query.filter(
+            Service_Request.customer.has(Customer.name.ilike(f"%{customer_name}%"))
+        )
+
+    elif entity == "date_of_service" and date_of_service:
         try:
-            # Convert the closing date string to a datetime object
-            closing_date_obj = datetime.strptime(closing_date, "%Y-%m-%d")
-            # Adjust the closing date to include only the date part for comparison
+            date_of_service_obj = datetime.strptime(date_of_service, "%Y-%m-%d")
             service_requests_query = service_requests_query.filter(
-                Service_Request.date_of_completion >= closing_date_obj,
-                Service_Request.date_of_completion
-                < closing_date_obj.replace(hour=23, minute=59, second=59),
+                Service_Request.date_of_request == date_of_service_obj
             )
         except ValueError:
-            print(
-                "Invalid date format. Please use YYYY-MM-DD."
-            )  # Handle invalid date format
+            print("Invalid date format for date of service. Please use YYYY-MM-DD.")
+
+    elif entity == "date_of_closing" and date_of_closing:
+        try:
+            date_of_closing_obj = datetime.strptime(date_of_closing, "%Y-%m-%d")
+            service_requests_query = service_requests_query.filter(
+                Service_Request.date_of_completion >= date_of_closing_obj,
+                Service_Request.date_of_completion
+                < date_of_closing_obj.replace(hour=23, minute=59, second=59),
+            )
+        except ValueError:
+            print("Invalid date format for closing date. Please use YYYY-MM-DD.")
 
     # Fetch the matching service requests
     service_requests = service_requests_query.all()
@@ -1048,13 +1070,6 @@ def search_customers():
     matching_customers = set()
 
     for service_request in service_requests:
-        if pin_code and service_request.customer.pin_code != pin_code:
-            continue
-        if (
-            customer_name
-            and customer_name.lower() not in service_request.customer.name.lower()
-        ):
-            continue
         matching_customers.add(
             service_request.customer
         )  # Use a set to avoid duplicates

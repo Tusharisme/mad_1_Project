@@ -38,25 +38,63 @@
                             </li>
                         </ul>
                         <form class="d-flex" action="{{ url_for('search_service') }}" method="GET">
-                            <select class="form-select me-2" name="pin_code" id="pin_code">
+                            <!-- Dropdown to select entity (Service, Pincode, Rating) -->
+                            <select class="form-select me-2" name="entity" id="entity" required>
+                                <option value="" disabled selected>Select Entity</option>
+                                <option value="service">Service</option>
+                                <option value="pincode">Pincode</option>
+                                <option value="rating">Rating</option>
+                            </select>
+
+                            <!-- Dropdown for Pin Code (only visible when "Pincode" is selected) -->
+                            <select class="form-select me-2" name="pin_code" id="pin_code" style="display: none;">
                                 <option value="" disabled selected>Select Pin Code</option>
                                 {% for pin in pin_codes %}
                                 <option value="{{ pin }}">{{ pin }}</option>
                                 {% endfor %}
                             </select>
 
-                            <select class="form-select me-2" name="rating" id="rating">
-                                <option value="" disabled selected>Select Rating</option>
-                                <option value="1">1 Star</option>
-                                <option value="2">2 Stars</option>
-                                <option value="3">3 Stars</option>
-                                <option value="4">4 Stars</option>
-                                <option value="5">5 Stars</option>
-                            </select>
-                            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search"
-                                name="query" />
+                            <!-- Rating input group (only visible when "Rating" is selected) -->
+                            <div class="input-group me-2" id="rating_group" style="display: none;">
+                                <input type="number" class="form-control" step="0.1" name="rating_value"
+                                    placeholder="Average Rating" min="1" max="5" />
+                                <select class="form-select" name="rating_condition">
+                                    <option value="high">Above or Equal</option>
+                                    <option value="low">Below or Equal</option>
+                                </select>
+                            </div>
+
+                            <!-- Search input (optional for service search) -->
+                            <input class="form-control me-2" type="text" placeholder="Search" name="query"
+                                id="search_prof" style="display: none;" />
+
                             <button class="btn btn-outline-success" type="submit">Search</button>
                         </form>
+
+                        <script>
+                            document.getElementById('entity').addEventListener('change', function () {
+                                const entity = this.value;
+                                const pinCodeDropdown = document.getElementById('pin_code');
+                                const ratingGroup = document.getElementById('rating_group');
+                                const searchGroup = document.getElementById('search_prof');
+
+                                // Reset visibility of pincode and rating group
+                                pinCodeDropdown.style.display = 'none';
+                                ratingGroup.style.display = 'none';
+                                searchGroup.style.display = 'none';
+
+                                // Show specific input based on the selected entity
+                                if (entity === 'pincode') {
+                                    pinCodeDropdown.style.display = 'inline-block';
+                                } else if (entity === 'rating') {
+                                    ratingGroup.style.display = 'flex';
+                                }
+                                else {
+                                    searchGroup.style.display = 'flex';
+                                }
+                            });
+                        </script>
+
                     </div>
                 </div>
             </nav>
@@ -201,6 +239,14 @@
                                         const rating = parseFloat(document.getElementById('serviceRating').value); // Parse rating as float
                                         const remarks = document.getElementById('serviceRemarks').value;
                                         const requestId = document.getElementById('requestId').value;
+                                        if (isNaN(rating) || rating < 1 || rating > 5) {
+                                            alert("Please provide valid inputs: rating between 1 and 5, and remarks.");
+                                            return;
+                                        }
+                                        if (!remarks.trim()) {
+                                            alert("Please provide remarks.");
+                                            return;
+                                        }
 
                                         fetch('/close_service', {
                                             method: 'POST',

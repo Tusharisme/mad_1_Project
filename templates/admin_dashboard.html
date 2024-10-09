@@ -52,8 +52,9 @@
                             <select class="form-select me-2" name="criteria" id="criteria">
                                 <option value="" disabled selected>Select Criteria</option>
                             </select>
-                            <!-- New section for rating filtering -->
-                            <div class="input-group me-2">
+
+                            <!-- New section for rating filtering (shown only for professional and average rating) -->
+                            <div class="input-group me-2" id="ratingFilter" style="display: none;">
                                 <input type="number" class="form-control" step="0.1" name="rating"
                                     placeholder="Average Rating" min="1" max="5" />
                                 <select class="form-select" name="rating_condition">
@@ -76,9 +77,12 @@
                                 'customer': ['Name', 'Email', 'Phone']
                             };
 
-                            document.getElementById('entity').addEventListener('change', function () {
+                            const entityDropdown = document.getElementById('entity');
+                            const criteriaDropdown = document.getElementById('criteria');
+                            const ratingFilter = document.getElementById('ratingFilter');
+
+                            entityDropdown.addEventListener('change', function () {
                                 const entity = this.value;
-                                const criteriaDropdown = document.getElementById('criteria');
 
                                 // Clear existing criteria options
                                 criteriaDropdown.innerHTML = '<option value="" disabled selected>Select Criteria</option>';
@@ -92,8 +96,25 @@
                                         criteriaDropdown.appendChild(option);
                                     });
                                 }
+
+                                // Hide rating filter if entity is not 'professional'
+                                if (entity !== 'professional') {
+                                    ratingFilter.style.display = 'none';
+                                }
+                            });
+
+                            criteriaDropdown.addEventListener('change', function () {
+                                const criteria = this.value;
+
+                                // Show rating filter only if entity is 'professional' and criteria is 'average_rating'
+                                if (entityDropdown.value === 'professional' && criteria === 'average_rating') {
+                                    ratingFilter.style.display = 'flex';
+                                } else {
+                                    ratingFilter.style.display = 'none';
+                                }
                             });
                         </script>
+
                     </div>
                 </div>
             </nav>

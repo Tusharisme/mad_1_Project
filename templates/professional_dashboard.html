@@ -37,18 +37,83 @@
                                 <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Logout</a>
                             </li>
                         </ul>
-                        <form class="d-flex" action="{{ url_for('search_customers') }}" method="GET">
-                            <select class="form-select me-2" name="pin_code" id="pin_code">
-                                <option value="" disabled selected>Select Pin Code</option>
-                                {% for pin in pin_codes %}
-                                <option value="{{ pin }}">{{ pin }}</option>
-                                {% endfor %}
+                        <form class="d-flex" action="{{ url_for('search_customers') }}" method="GET"
+                            onsubmit="return validateForm()">
+                            <select class="form-select me-2" id="entity" name="entity" required onchange="showFields()">
+                                <option value="" disabled selected>Select Entity</option>
+                                <option value="pin_code">Pin Code</option>
+                                <option value="customer_name">Customer Name</option>
+                                <option value="date_of_service">Date of Service</option>
+                                <option value="date_of_closing">Date of Closing</option>
                             </select>
-                            <input type="text" class="form-control me-2" placeholder="Customer Name"
-                                name="customer_name" />
-                            <input type="date" class="form-control me-2" name="date" />
+
+                            <div id="pin_code_field" style="display: none;">
+                                <select class="form-select me-2" name="pin_code">
+                                    <option value="" disabled selected>Select Pin Code</option>
+                                    {% for pin in pin_codes %}
+                                    <option value="{{ pin }}">{{ pin }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div id="customer_name_field" style="display: none;">
+                                <input type="text" class="form-control me-2" placeholder="Customer Name"
+                                    name="customer_name" />
+                            </div>
+
+                            <div id="date_of_service_field" style="display: none;">
+                                <input type="date" class="form-control me-2" name="date_of_service"
+                                    placeholder="Date of Service" />
+                            </div>
+
+                            <div id="date_of_closing_field" style="display: none;">
+                                <input type="date" class="form-control me-2" name="date_of_closing"
+                                    placeholder="Date of Closing" />
+                            </div>
+
+                            <!-- Search input, only shown when Customer Name is selected -->
+                            <!-- <div id="search_field" style="display: none;">
+                                <input class="form-control me-2" type="text" placeholder="Search" name="query" />
+                            </div> -->
+
                             <button class="btn btn-outline-success" type="submit">Search</button>
                         </form>
+
+                        <script>
+                            function showFields() {
+                                const entity = document.getElementById("entity").value;
+
+                                // Hide all fields initially
+                                document.getElementById("pin_code_field").style.display = "none";
+                                document.getElementById("customer_name_field").style.display = "none";
+                                document.getElementById("date_of_service_field").style.display = "none";
+                                document.getElementById("date_of_closing_field").style.display = "none";
+                                // document.getElementById("search_field").style.display = "none"; // Hide search input by default
+
+                                // Show the relevant field based on selected entity
+                                if (entity === "pin_code") {
+                                    document.getElementById("pin_code_field").style.display = "block";
+                                } else if (entity === "customer_name") {
+                                    document.getElementById("customer_name_field").style.display = "block";
+                                    // document.getElementById("search_field").style.display = "block"; // Show search input for customer name
+                                } else if (entity === "date_of_service") {
+                                    document.getElementById("date_of_service_field").style.display = "block";
+                                } else if (entity === "date_of_closing") {
+                                    document.getElementById("date_of_closing_field").style.display = "block";
+                                }
+                            }
+
+                            function validateForm() {
+                                const entity = document.getElementById("entity").value;
+                                if (!entity) {
+                                    alert("Please select an entity to search.");
+                                    return false; // Prevent form submission
+                                }
+                                return true; // Allow form submission
+                            }
+                        </script>
+
+
                     </div>
                 </div>
             </nav>
