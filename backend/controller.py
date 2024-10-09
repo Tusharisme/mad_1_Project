@@ -106,6 +106,7 @@ def admin_dashboard():
 
         # Fetch all service requests
         service_requests = Service_Request.query.all()
+        service_requests.sort(key=lambda request: request.id, reverse=True)
 
         # Fetch all customers
         customers = Customer.query.filter(Customer.role == 1).all()
@@ -170,10 +171,8 @@ def search_admin():
     entity = request.args.get("entity")
     criteria = request.args.get("criteria")
     query = request.args.get("query")
-    rating_filter = request.args.get("rating")  # New field for rating
-    rating_condition = request.args.get(
-        "rating_condition"
-    )  # New field for low/high condition
+    rating_filter = request.args.get("rating")  # For rating filter
+    rating_condition = request.args.get("rating_condition")
 
     results = []
 
@@ -191,9 +190,8 @@ def search_admin():
                 ).all()
 
     elif entity == "professional":
-        # Check if query is empty and rating_filter is provided
         if not query and rating_filter:
-            # If rating_filter is specified, filter professionals by average_rating
+            # Filter professionals by average_rating if rating_filter is provided
             if rating_condition == "high":
                 results = Service_Professional.query.filter(
                     Service_Professional.average_rating >= float(rating_filter)
@@ -203,10 +201,8 @@ def search_admin():
                     Service_Professional.average_rating <= float(rating_filter)
                 ).all()
             else:
-                # If no specific rating condition is given, return all professionals
                 results = Service_Professional.query.all()
         else:
-            # If there is a query, filter based on that
             if criteria == "name":
                 results = Service_Professional.query.filter(
                     Service_Professional.name.ilike(f"%{query}%")
@@ -216,8 +212,7 @@ def search_admin():
                     Service_Professional.experience == query
                 ).all()
             elif criteria == "average_rating":
-                # Handle average_rating with existing query
-                if rating_filter:  # Check if rating_filter is not empty
+                if rating_filter:
                     if rating_condition == "high":
                         results = Service_Professional.query.filter(
                             Service_Professional.average_rating >= float(rating_filter)
@@ -226,11 +221,16 @@ def search_admin():
                         results = Service_Professional.query.filter(
                             Service_Professional.average_rating <= float(rating_filter)
                         ).all()
-                else:
-                    # If rating_filter is empty and criteria is "average_rating", return all professionals
-                    results = Service_Professional.query.all()
+            elif criteria == "verified_status":
+                results = Service_Professional.query.filter(
+                    Service_Professional.verified_status.ilike(f"%{query}%")
+                ).all()
+            elif criteria == "blocked_status":
+                block_value = True if query.lower() == "blocked" else False
+                results = Service_Professional.query.filter(
+                    Service_Professional.block_status == block_value
+                ).all()
             else:
-                # If criteria is empty, return all professionals
                 results = Service_Professional.query.all()
 
     elif entity == "service_request":
@@ -759,6 +759,8 @@ def customer_dashboard():
 
     # Fetch all service requests for the logged-in customer (for the service history section)
     service_requests = Service_Request.query.filter_by(customer_id=customer_id).all()
+    # Sort the requests by ID in descending order
+    service_requests.sort(key=lambda request: request.id, reverse=True)
     if customer.is_blocked:
         block_message = (
             "You have been blocked by the admin and cannot book any services."
@@ -801,9 +803,6 @@ def get_service_professionals(service_id):
     )
 
 
-from datetime import datetime
-
-
 @app.route("/book_service", methods=["POST"])
 def book_service():
     service_id = request.form.get("service_id")
@@ -829,6 +828,11 @@ def book_service():
         requested_time_obj = datetime.strptime(requested_time, "%H:%M").time()
     except ValueError:
         flash("Invalid date or time format.", "danger")
+        return redirect(url_for("customer_dashboard"))
+
+    # Check if the requested date is in the past
+    if requested_date_obj < datetime.utcnow().date():
+        flash("You cannot book a service for a date that has already passed.", "danger")
         return redirect(url_for("customer_dashboard"))
 
     # Proceed with booking if the customer is not blocked and all data is available
@@ -1141,9 +1145,15 @@ def professional_summary():
         .all()
     )
 
-    # Service status data
+    # Service status data (including requested services)
     service_status_data = {
-        "accepted": db.session.query(Service_Request)
+        "requested": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "requested",
+        )
+        .count(),
+        "ongoing": db.session.query(Service_Request)
         .filter(
             Service_Request.professional_id == professional_id,
             Service_Request.service_status == "ongoing",
@@ -1181,11 +1191,65 @@ def professional_summary():
     )
 
 
+# @app.route("/professional_dashboard/summary/api")
+# def professional_summary_api():
+#     professional_id = session.get("professional_id")
+
+#     # Repeat the logic for ratings and service status
+#     ratings_data = (
+#         db.session.query(Service_Request.rating, func.count(Service_Request.rating))
+#         .filter(
+#             Service_Request.professional_id == professional_id,
+#             Service_Request.rating.isnot(None),
+#         )
+#         .group_by(Service_Request.rating)
+#         .all()
+#     )
+
+#     service_status_data = {
+#         "accepted": db.session.query(Service_Request)
+#         .filter(
+#             Service_Request.professional_id == professional_id,
+#             Service_Request.service_status == "accepted",
+#         )
+#         .count(),
+#         "rejected": db.session.query(Service_Request)
+#         .filter(
+#             Service_Request.professional_id == professional_id,
+#             Service_Request.service_status == "rejected",
+#         )
+#         .count(),
+#         "completed": db.session.query(Service_Request)
+#         .filter(
+#             Service_Request.professional_id == professional_id,
+#             Service_Request.service_status == "closed",
+#         )
+#         .count(),
+#     }
+
+#     # Prepare data in a JSON-friendly structure
+#     ratings_chart_data = {
+#         "labels": [str(r[0]) for r in ratings_data],  # Ensure they are strings
+#         "values": [r[1] for r in ratings_data],
+#     }
+#     status_chart_data = {
+#         "labels": list(service_status_data.keys()),
+#         "values": list(service_status_data.values()),
+#     }
+
+#     return jsonify(
+#         {
+#             "ratings": ratings_chart_data,
+#             "status": status_chart_data,
+#         }
+#     )
+
+
 @app.route("/professional_dashboard/summary/api")
 def professional_summary_api():
     professional_id = session.get("professional_id")
 
-    # Repeat the logic for ratings and service status
+    # Fetch ratings data
     ratings_data = (
         db.session.query(Service_Request.rating, func.count(Service_Request.rating))
         .filter(
@@ -1196,11 +1260,18 @@ def professional_summary_api():
         .all()
     )
 
+    # Fetch service status data (including requested services)
     service_status_data = {
-        "accepted": db.session.query(Service_Request)
+        "requested": db.session.query(Service_Request)
         .filter(
             Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "accepted",
+            Service_Request.service_status == "requested",
+        )
+        .count(),
+        "ongoing": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "ongoing",
         )
         .count(),
         "rejected": db.session.query(Service_Request)
@@ -1229,8 +1300,8 @@ def professional_summary_api():
 
     return jsonify(
         {
-            "ratings": ratings_chart_data,
-            "status": status_chart_data,
+            "ratings_data": ratings_chart_data,
+            "status_data": status_chart_data,
         }
     )
 
@@ -1252,10 +1323,10 @@ def customer_summary():
 
     # Service status data
     service_status_data = {
-        "accepted": db.session.query(Service_Request)
+        "ongoing": db.session.query(Service_Request)
         .filter(
             Service_Request.customer_id == customer_id,
-            Service_Request.service_status == "accepted",
+            Service_Request.service_status == "ongoing",
         )
         .count(),
         "rejected": db.session.query(Service_Request)
@@ -1264,12 +1335,18 @@ def customer_summary():
             Service_Request.service_status == "rejected",
         )
         .count(),
-        "completed": db.session.query(Service_Request)
+        "closed": db.session.query(Service_Request)
         .filter(
             Service_Request.customer_id == customer_id,
-            Service_Request.service_status == "completed",
+            Service_Request.service_status == "closed",
         )
         .count(),
+        "requested": db.session.query(Service_Request)
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.service_status == "requested",
+        )
+        .count(),  # Count for requested status
     }
 
     # Prepare data in a JSON-friendly structure
@@ -1313,7 +1390,7 @@ def customer_summary_api():
 
     # Fetching service status data
     service_status_data = {
-        "accepted": db.session.query(Service_Request)
+        "ongoing": db.session.query(Service_Request)
         .filter(
             Service_Request.customer_id == customer_id,
             Service_Request.service_status == "ongoing",
@@ -1325,12 +1402,18 @@ def customer_summary_api():
             Service_Request.service_status == "rejected",
         )
         .count(),
-        "completed": db.session.query(Service_Request)
+        "closed": db.session.query(Service_Request)
         .filter(
             Service_Request.customer_id == customer_id,
             Service_Request.service_status == "closed",
         )
         .count(),
+        "requested": db.session.query(Service_Request)
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.service_status == "requested",
+        )
+        .count(),  # Count for requested status
     }
 
     # Preparing status chart data

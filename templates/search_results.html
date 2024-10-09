@@ -56,12 +56,52 @@
                     <div class="card-body">
                         <h5 class="card-title">Name: {{ professional.name }}</h5>
                         <p class="card-text">Experience: {{ professional.experience }} years</p>
+                        <p class="card-text">Verified Status: {{ professional.verified_status }} </p>
+                        <p class="card-text">Blocked Status: {{ 'Not blocked' if professional.block_status == False else
+                            'Blocked' }}</p>
                         <p class="card-text">Rating: {{ professional.average_rating if professional.average_rating is
                             not none else 'N/A' }}</p>
 
                         <!-- Stretched Link for professional details -->
                         <a href="{{ url_for('professional_details', professional_id=professional.id) }}"
                             class="stretched-link"></a>
+                        <!-- Approve/Reject Buttons -->
+
+                        {% if professional.verified_status == "approved" %}
+                        <form method="POST"
+                            action="{{ url_for('block_professional', professional_id=professional.id) }}"
+                            style="display:inline;" onsubmit="return confirmBlockProfessional();">
+                            <button type="submit" class="btn btn-danger" style="z-index: 10;">Block</button>
+                        </form>
+                        <b>||</b>
+                        <form method="POST"
+                            action="{{ url_for('unblock_professional', professional_id=professional.id) }}"
+                            style="display:inline;" onsubmit="return confirmUnBlockProfessional();">
+                            <button type="submit" class="btn btn-success" style="z-index: 10;">Unblock</button>
+                        </form>
+                        <b>||</b>
+                        <form action="{{ url_for('delete_professional', professional_id=professional.id) }}"
+                            method="POST" style="display:inline;" onsubmit="return confirmDeleteProfessional();">
+                            <button type="submit" class="btn btn-danger" style="z-index: 10;">Delete</button>
+                        </form>
+                        {%else%}
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                            data-bs-target="#approveRejectModal" data-id="{{ professional.id }}" data-action="approve"
+                            style="z-index: 10;">
+                            Approve
+                        </button>
+                        <b>||</b>
+                        <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                            data-bs-target="#approveRejectModal" data-id="{{ professional.id }}" data-action="reject"
+                            style="z-index: 10;">
+                            Reject
+                        </button>
+                        <b>||</b>
+                        <form action="{{ url_for('delete_professional', professional_id=professional.id) }}"
+                            method="POST" style="display:inline;" onsubmit="return confirmDeleteProfessional();">
+                            <button type="submit" class="btn btn-danger" style="z-index: 10;">Delete</button>
+                        </form>
+                        {% endif %}
 
                     </div>
                 </div>
@@ -172,6 +212,98 @@
                 document.getElementById('edit_base_price').value = servicePrice;
                 document.getElementById('edit_base_time_required').value = serviceTime; // Update to the new ID
             });
+        </script>
+
+        <!-- Approve/Reject Professional Modal -->
+        <form id="approveRejectForm" action="" method="POST">
+            <div class="modal fade" id="approveRejectModal" tabindex="-1" aria-labelledby="approveRejectModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="approveRejectModalLabel">Professional Approval/Rejection
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><b>Professional Name:</b> <span id="professional_name"></span></p>
+                            <p><b>Experience:</b> <span id="professional_experience"></span> years</p>
+                            <p><b>Service:</b> <span id="professional_service"></span></p>
+                            <p><b>Address:</b> <span id="professional_address"></span></p>
+                            <p><b>Pincode:</b> <span id="professional_pincode"></span></p>
+                            <!-- <p><b>Verified Status:</b> <span id="professional_vstatus"></span></p> -->
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary" id="action_button">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <script>
+            // Get modal element for approving/rejecting professionals
+            var approveRejectModal = document.getElementById('approveRejectModal');
+
+            // Add an event listener to trigger when the modal is shown
+            approveRejectModal.addEventListener('show.bs.modal', function (event) {
+                // Button that triggered the modal
+                var button = event.relatedTarget;
+
+                // Extract professional ID from the data-id attribute
+                var professionalId = button.getAttribute('data-id');
+                var action = button.getAttribute('data-action');
+
+                // Fetch professional details from the API
+                fetch('/api/professional/' + professionalId)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Populate modal with the fetched data
+                        document.getElementById('professional_name').textContent = data.name;
+                        document.getElementById('professional_experience').textContent = data.experience;
+                        document.getElementById('professional_service').textContent = data.service_type;
+                        document.getElementById('professional_address').textContent = data.address;
+                        document.getElementById('professional_pincode').textContent = data.pin_code;
+                        // document.getElementById('professional_vstatus').textContent = data.verified_status;
+
+                        // Set form action and button label
+                        var form = document.getElementById('approveRejectForm');
+                        form.action = '/professional/' + action + '/' + professionalId;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching professional details:', error);
+                    });
+            });
+        </script>
+        <!-- JavaScript to Show Confirmation Before Delete -->
+        <script>
+            function confirmDeleteProfessional() {
+                return confirm("Are you sure you want to delete this Professional?");
+            }
+        </script>
+        <!-- JavaScript to Show Confirmation Before block a professional -->
+        <script>
+            function confirmBlockProfessional() {
+                return confirm("Are you sure you want to block this Professional?");
+            }
+        </script>
+        <!-- JavaScript to Show Confirmation Before block a professional -->
+        <script>
+            function confirmUnBlockProfessional() {
+                return confirm("Are you sure you want to unblock this Professional?");
+            }
+        </script>
+        <!-- JavaScript to Show Confirmation Before block a professional -->
+        <script>
+            function confirmBlockCustomer() {
+                return confirm("Are you sure you want to block this Customer?");
+            }
+        </script>
+        <!-- JavaScript to Show Confirmation Before unblock a professional -->
+        <script>
+            function confirmUnBlockCustomer() {
+                return confirm("Are you sure you want to unblock this Customer?");
+            }
         </script>
 
         <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>

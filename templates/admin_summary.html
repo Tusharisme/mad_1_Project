@@ -41,7 +41,8 @@
                                     href="{{ url_for('admin_summary') }}">Summary</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Log Out</a>
+                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Log
+                                    Out</a>
                             </li>
                         </ul>
                     </div>
@@ -54,13 +55,13 @@
             <div class="chart-container">
                 <div>
                     <h4>Service Request Summary</h4>
-                    <canvas id="serviceRequestChart"></canvas>
+                    <canvas id="serviceRequestChart" width="400" height="400"></canvas>
                 </div>
 
                 <!-- Customer Rating Summary Chart -->
                 <div>
                     <h4>Customer Rating Summary</h4>
-                    <canvas id="customerRatingChart"></canvas>
+                    <canvas id="customerRatingChart" width="400" height="400"></canvas>
                 </div>
             </div>
 
@@ -92,7 +93,15 @@
                                 responsive: true,
                                 scales: {
                                     y: {
-                                        beginAtZero: true
+                                        beginAtZero: true,
+                                        ticks: {
+                                            stepSize: 1, // Set a step size for Y-axis ticks
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            display: false // Optionally hide the grid on the X-axis
+                                        }
                                     }
                                 }
                             }

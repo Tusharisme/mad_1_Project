@@ -49,7 +49,7 @@
                             </select>
 
                             <!-- Dropdown to select criteria (optional) -->
-                            <select class="form-select me-2" name="criteria" id="criteria">
+                            <select class="form-select me-2" name="criteria" id="criteria" disabled>
                                 <option value="" disabled selected>Select Criteria</option>
                             </select>
 
@@ -63,8 +63,9 @@
                                 </select>
                             </div>
 
-                            <!-- Search input (optional) -->
-                            <input class="form-control me-2" type="text" placeholder="Search" name="query" />
+                            <!-- Search input -->
+                            <input class="form-control me-2" type="text" placeholder="Search" name="query"
+                                id="query_input" style="display: none;" />
 
                             <button class="btn btn-outline-success" type="submit">Search</button>
                         </form>
@@ -72,7 +73,7 @@
                         <script>
                             const entityCriteriaMap = {
                                 'service': ['Name', 'Base Price', 'Description'],
-                                'professional': ['Name', 'Experience', 'Average Rating'],  // Updated to Average Rating
+                                'professional': ['Name', 'Experience', 'Average Rating', 'Verified Status', 'Blocked Status'],
                                 'service_request': ['Customer Name', 'Service Status'],
                                 'customer': ['Name', 'Email', 'Phone']
                             };
@@ -80,9 +81,14 @@
                             const entityDropdown = document.getElementById('entity');
                             const criteriaDropdown = document.getElementById('criteria');
                             const ratingFilter = document.getElementById('ratingFilter');
+                            const queryInput = document.getElementById('query_input');
 
                             entityDropdown.addEventListener('change', function () {
                                 const entity = this.value;
+
+                                // Enable criteria dropdown and show query input when entity is selected
+                                criteriaDropdown.disabled = false;
+                                queryInput.style.display = 'block'; // Show query input
 
                                 // Clear existing criteria options
                                 criteriaDropdown.innerHTML = '<option value="" disabled selected>Select Criteria</option>';
@@ -98,9 +104,7 @@
                                 }
 
                                 // Hide rating filter if entity is not 'professional'
-                                if (entity !== 'professional') {
-                                    ratingFilter.style.display = 'none';
-                                }
+                                ratingFilter.style.display = (entity === 'professional' && criteriaDropdown.value === 'average_rating') ? 'flex' : 'none';
                             });
 
                             criteriaDropdown.addEventListener('change', function () {

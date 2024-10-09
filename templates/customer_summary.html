@@ -54,9 +54,10 @@
                             datasets: [{
                                 label: 'Service Status',
                                 backgroundColor: [
-                                    'rgba(54, 162, 235, 0.6)', // Blue
-                                    'rgba(255, 99, 132, 0.6)', // Red
-                                    'rgba(255, 206, 86, 0.6)', // Yellow
+                                    'rgba(54, 162, 235, 0.6)', // Blue for accepted
+                                    'rgba(255, 99, 132, 0.6)', // Red for rejected
+                                    'rgba(255, 206, 86, 0.6)', // Yellow for completed
+                                    'rgba(75, 192, 192, 0.6)'  // Green for requested
                                 ],
                                 data: data.status_data.values,
                             }]
