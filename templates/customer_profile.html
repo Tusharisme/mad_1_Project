@@ -53,7 +53,15 @@
             <!-- Profile Information Section -->
             <h2>Customer Profile</h2>
 
-            <form method="POST" action="{{ url_for('update_customer_profile') }}">
+
+            <form method="POST" enctype="multipart/form-data" action="{{ url_for('update_customer_profile') }}">
+                <!-- Profile Picture -->
+                <div class="mb-3">
+                    <label for="profile_pic"><img src="{{ customer.profile_pic }}" alt="Profile Picture" width="150"
+                            height="150" class="rounded-circle" /></label><br><br>
+                    <label for="profile_pic" class="form-label"><b><i>Edit</i></b></label><br>
+                    <input type="file" class="form-control" id="profile_pic" name="profile_pic" hidden />
+                </div>
                 <div class="mb-3">
                     <label for="name" class="form-label">Name</label>
                     <input type="text" class="form-control" id="name" name="name" value="{{ customer.name }}"
@@ -71,6 +79,11 @@
                     <input type="email" class="form-control" id="email" name="email" value="{{ customer.email }}"
                         required />
                 </div>
+                <div class="mb-3">
+                    <label for="phone_no" class="form-label">Phone No.</label>
+                    <input type="text" class="form-control" id="phone_no" name="phone_no"
+                        value="{{ customer.phone_no }}" required />
+                </div>
 
                 <div class="mb-3">
                     <label for="address" class="form-label">Address</label>
@@ -82,6 +95,14 @@
                     <label for="pin_code" class="form-label">Pin Code</label>
                     <input type="text" class="form-control" id="pin_code" name="pin_code"
                         value="{{ customer.pin_code }}" required />
+                </div>
+                <!-- Gender Dropdown -->
+                <div class="mb-3">
+                    <label for="gender" class="form-label">Gender</label>
+                    <select class="form-select" id="gender" name="gender" required>
+                        <option value="Male" {% if customer.gender=="Male" %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if customer.gender=="Female" %}selected{% endif %}>Female</option>
+                    </select>
                 </div>
 
                 <button type="submit" class="btn btn-primary">Update Profile</button>

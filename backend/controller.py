@@ -334,6 +334,18 @@ def user_signup():
         address = request.form.get("address")
         pin_code = request.form.get("pin_code")
         phone_no = request.form.get("phone_no")
+        gender = request.form.get("gender")  # Get the gender from the form
+
+        # Assign profile picture based on the selected gender
+        if gender == "Male":
+            profile_pic = "/static/images/male.png"  # Path to male profile picture
+        elif gender == "Female":
+            profile_pic = "/static/images/female.jpg"  # Path to female profile picture
+        else:
+            profile_pic = (
+                "/static/images/default.jpg"  # Fallback in case gender is not specified
+            )
+
         usr = Customer.query.filter_by(email=email, password=password).first()
 
         # Check if it's the first customer
@@ -353,11 +365,50 @@ def user_signup():
                 pin_code=pin_code,
                 phone_no=phone_no,
                 role=role,
+                gender=gender,  # Save the gender to the database
+                profile_pic=profile_pic,  # Save the profile picture path to the database
             )
             db.session.add(new_usr)
             db.session.commit()
             return render_template("login.html")
+
     return render_template("signup.html")
+
+
+def save_customer_pic(file):
+    # Get the filename and ensure it's secure
+    filename = secure_filename(file.filename)
+
+    # Get the full path where the file will be saved
+    upload_folder = current_app.config["CUSTOMER_PIC_FOLDER"]
+    file_path = os.path.join(upload_folder, filename)
+
+    # Ensure that the customer_pic directory exists
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
+    # Save the file
+    file.save(file_path)
+
+    return filename  # Return just the filename for storing in the database
+
+
+def save_professional_pic(file):
+    # Get the filename and ensure it's secure
+    filename = secure_filename(file.filename)
+
+    # Get the full path where the file will be saved
+    upload_folder = current_app.config["PROFESSIONAL_PIC_FOLDER"]
+    file_path = os.path.join(upload_folder, filename)
+
+    # Ensure that the professional_pic directory exists
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
+    # Save the file
+    file.save(file_path)
+
+    return filename  # Return just the filename for storing in the database
 
 
 def save_document(file):
@@ -395,7 +446,17 @@ def prof_register():
         service_type = request.form.get(
             "service_type"
         )  # Capturing service type directly
+        gender = request.form.get("gender")  # Get the gender from the form
 
+        # Assign profile picture based on the selected gender
+        if gender == "Male":
+            profile_pic = "/static/images/male.png"  # Path to male profile picture
+        elif gender == "Female":
+            profile_pic = "/static/images/female.jpg"  # Path to female profile picture
+        else:
+            profile_pic = (
+                "/static/images/default.jpg"  # Fallback in case gender is not specified
+            )
         # Check if the professional already exists by email
         usr = Service_Professional.query.filter_by(email=email).first()
 
@@ -419,6 +480,8 @@ def prof_register():
                 pin_code=pin_code,
                 phone_no=phone_no,
                 service_type=service_type,  # Saving the service type
+                gender=gender,  # Save the gender to the database
+                profile_pic=profile_pic,  # Save the profile picture path to the database
             )
 
             # Fetch the selected service by name from the form
@@ -1468,6 +1531,7 @@ def update_professional_profile():
     email = request.form.get("email")
     address = request.form.get("address")
     pin_code = request.form.get("pin_code")
+    gender = request.form.get("gender")  # Get the gender from the form
 
     # Check if the new username already exists in both tables, excluding the current professional
     existing_username_professional = Service_Professional.query.filter(
@@ -1491,6 +1555,12 @@ def update_professional_profile():
     if existing_email_professional or existing_email_customer:
         flash("Email address already exists. Please choose a different one.", "danger")
         return redirect(url_for("professional_profile"))
+    # Handle profile picture upload
+    if "profile_pic" in request.files:
+        file = request.files["profile_pic"]
+        if file:
+            professional_pic_path = save_professional_pic(file)  # Save the customer pic
+            professional.profile_pic = f"/static/professional_pic/{professional_pic_path}"  # Save the path in the database
 
     # Update the professional's information
     professional.name = name
@@ -1498,6 +1568,7 @@ def update_professional_profile():
     professional.email = email
     professional.address = address
     professional.pin_code = pin_code
+    professional.gender = gender  # Update the gender
 
     # Commit changes to the database
     db.session.commit()
@@ -1561,6 +1632,8 @@ def update_customer_profile():
     email = request.form.get("email")
     address = request.form.get("address")
     pin_code = request.form.get("pin_code")
+    phone_no = request.form.get("phone_no")
+    gender = request.form.get("gender")  # Added gender field
 
     # Check if the new username already exists in the Customer table or Service Professional table
     existing_username_customer = Customer.query.filter(
@@ -1588,12 +1661,21 @@ def update_customer_profile():
         flash("Email address already exists. Please choose a different one.", "danger")
         return redirect(url_for("customer_profile"))
 
+    # Handle profile picture upload
+    if "profile_pic" in request.files:
+        file = request.files["profile_pic"]
+        if file:
+            customer_pic_path = save_customer_pic(file)  # Save the customer pic
+            customer.profile_pic = f"/static/customer_pic/{customer_pic_path}"  # Save the path in the database
+
     # Update the customer's information
     customer.name = name
     customer.username = username
     customer.email = email
     customer.address = address
     customer.pin_code = pin_code
+    customer.phone_no = phone_no
+    customer.gender = gender  # Update the gender
 
     # Commit changes to the database
     db.session.commit()
@@ -1710,6 +1792,7 @@ def block_customer(customer_id):
     customer = Customer.query.get_or_404(customer_id)
     customer.is_blocked = True  # Set the is_blocked field to True
     db.session.commit()
+    flash("Customer has been blocked successfully.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -1718,6 +1801,7 @@ def unblock_customer(customer_id):
     customer = Customer.query.get_or_404(customer_id)
     customer.is_blocked = False  # Set the is_blocked field to False
     db.session.commit()
+    flash("Customer has been Unblocked successfully.", "success")
     return redirect(url_for("admin_dashboard"))
 
 

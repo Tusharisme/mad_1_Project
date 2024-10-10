@@ -1,5 +1,6 @@
 from flask import Flask
 from backend.models import *  # Importing the db instance from models
+
 # from backend.api_controller import api  # Importing the api controller (if necessary)
 
 app = None  # initially None
@@ -13,12 +14,22 @@ def init_app():
         "sqlite:///service.sqlite3"  # Database config
     )
     service_app.config["UPLOAD_FOLDER"] = "static/uploads/"  # File upload folder
+    service_app.config["CUSTOMER_PIC_FOLDER"] = (
+        "static/customer_pic/"  # File upload folder for customer pics
+    )
+    service_app.config["PROFESSIONAL_PIC_FOLDER"] = (
+        "static/professional_pic/"  # File upload folder for customer pics
+    )
 
     # Ensure the upload folder exists
     import os
 
     if not os.path.exists(service_app.config["UPLOAD_FOLDER"]):
         os.makedirs(service_app.config["UPLOAD_FOLDER"])
+    if not os.path.exists(service_app.config["CUSTOMER_PIC_FOLDER"]):
+        os.makedirs(service_app.config["CUSTOMER_PIC_FOLDER"])
+    if not os.path.exists(service_app.config["PROFESSIONAL_PIC_FOLDER"]):
+        os.makedirs(service_app.config["PROFESSIONAL_PIC_FOLDER"])
 
     service_app.app_context().push()  # Push the app context for use in other modules
     db.init_app(service_app)  # Initialize the db object

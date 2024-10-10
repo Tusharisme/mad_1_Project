@@ -14,6 +14,8 @@ class Customer(db.Model):
     address = db.Column(db.String, nullable=False)
     pin_code = db.Column(db.String, nullable=False)
     phone_no = db.Column(db.Integer, nullable=False)
+    gender = db.Column(db.String, nullable=True)  # New column for gender (optional)
+    profile_pic = db.Column(db.String, nullable=True)  # New column for profile picture (optional)
     role = db.Column(
         db.Integer, nullable=False, default=1
     )  # 0 for admin, 1 for customer
@@ -37,7 +39,9 @@ class Service_Professional(db.Model):
     email = db.Column(db.String, unique=True, nullable=False)
     address = db.Column(db.String, nullable=False)
     pin_code = db.Column(db.String, nullable=False)
-    verified_status = db.Column(db.String, nullable=True)
+    verified_status = db.Column(db.String, nullable=True, default="Not verified yet")
+    gender = db.Column(db.String, nullable=True)  # New column for gender (optional)
+    profile_pic = db.Column(db.String, nullable=True)  # New column for profile picture (optional)
     average_rating = db.Column(db.Float, nullable=True)  # New column for average rating
     document = db.Column(db.String, nullable=True)  # Column to store document path
     block_status = db.Column(db.Boolean, default=False)  # Block/unblock status

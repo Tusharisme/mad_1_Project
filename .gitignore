@@ -1,4 +1,6 @@
 /static/uploads
 /.vscode
 /instance
-/instance
+/static/customer_pic
+/static/images
+/static/professional_pic

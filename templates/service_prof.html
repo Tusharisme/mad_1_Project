@@ -15,7 +15,9 @@
 <body>
   <div id="container">
     <div class="header-section text-center">
-      <a class="navbar-brand" href="{{ url_for('home') }}" style="color: black;"><h3>A to Z Household Services</h3></a>
+      <a class="navbar-brand" href="{{ url_for('home') }}" style="color: black;">
+        <h3>A to Z Household Services</h3>
+      </a>
     </div>
     <div id="panel">
       <div id="input-form">
@@ -39,7 +41,15 @@
           </div>
           <div class="mb-3">
             <label for="phone_no" class="form-label"><b>Phone No.:</b></label>
-            <input type="text" class="form-control" name="phone_no" id="phone_no" />
+            <input type="text" class="form-control" name="phone_no" id="phone_no" required />
+          </div>
+          <div class="mb-3">
+            <label for="gender" class="form-label"><b>Gender:</b></label>
+            <select class="form-select" name="gender" id="gender" required>
+              <option value="" selected disabled>Select your gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
           </div>
           <div class="mb-3">
             <label for="experience" class="form-label"><b>Experience (in years)</b></label>
@@ -47,7 +57,7 @@
           </div>
           <div class="mb-3">
             <label for="document" class="form-label"><b>Attach Documents (Single PDF)</b></label>
-            <input type="file" class="form-control form-control-sm" name="document" id="document" />
+            <input type="file" class="form-control form-control-sm" name="document" id="document" required />
           </div>
           <div class="mb-3">
             <label for="address" class="form-label"><b>Address</b></label>

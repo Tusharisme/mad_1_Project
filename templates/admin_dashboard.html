@@ -1,4 +1,3 @@
-</html>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -41,7 +40,7 @@
                         <form class="d-flex" action="{{ url_for('search_admin') }}" method="GET">
                             <!-- Dropdown to select entity (Service, Professional, etc.) -->
                             <select class="form-select me-2" name="entity" id="entity" required>
-                                <option value="" disabled selected>Select Entity</option>
+                                <option value="" disabled selected>Select Category</option>
                                 <option value="service">Service</option>
                                 <option value="professional">Professional</option>
                                 <option value="service_request">Service Request</option>
@@ -123,7 +122,18 @@
                 </div>
             </nav>
             <br>
-
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="container mt-2">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
             <!-- Services Section -->
             <h4>Services</h4>
             {% if services %}
@@ -455,12 +465,12 @@
                         <td>{{ customer.average_rating or 'N/A' }}</td> <!-- Display Average Rating -->
                         <td>
                             <form action="{{ url_for('block_customer', customer_id=customer.id) }}" method="POST"
-                                style="display:inline;" onclick="confirmBlockCustomer();">
+                                style="display:inline;" onsubmit="return confirmBlockCustomer();">
                                 <button type="submit" class="btn btn-danger">Block</button>
                             </form>
                             <b>||</b>
                             <form action="{{ url_for('unblock_customer', customer_id=customer.id) }}" method="POST"
-                                style="display:inline;" onclick="confirmUnBlockCustomer();">
+                                style="display:inline;" onsubmit="return confirmUnBlockCustomer();">
                                 <button type="submit" class="btn btn-success">Unblock</button>
                             </form>
                         </td>

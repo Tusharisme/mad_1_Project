@@ -64,45 +64,45 @@
 
                         <!-- Stretched Link for professional details -->
                         <a href="{{ url_for('professional_details', professional_id=professional.id) }}"
-                            class="stretched-link"></a>
+                            class="stretched-link " style="z-index: -1;"></a>
                         <!-- Approve/Reject Buttons -->
-
-                        {% if professional.verified_status == "approved" %}
-                        <form method="POST"
-                            action="{{ url_for('block_professional', professional_id=professional.id) }}"
-                            style="display:inline;" onsubmit="return confirmBlockProfessional();">
-                            <button type="submit" class="btn btn-danger" style="z-index: 10;">Block</button>
-                        </form>
-                        <b>||</b>
-                        <form method="POST"
-                            action="{{ url_for('unblock_professional', professional_id=professional.id) }}"
-                            style="display:inline;" onsubmit="return confirmUnBlockProfessional();">
-                            <button type="submit" class="btn btn-success" style="z-index: 10;">Unblock</button>
-                        </form>
-                        <b>||</b>
-                        <form action="{{ url_for('delete_professional', professional_id=professional.id) }}"
-                            method="POST" style="display:inline;" onsubmit="return confirmDeleteProfessional();">
-                            <button type="submit" class="btn btn-danger" style="z-index: 10;">Delete</button>
-                        </form>
-                        {%else%}
-                        <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                            data-bs-target="#approveRejectModal" data-id="{{ professional.id }}" data-action="approve"
-                            style="z-index: 10;">
-                            Approve
-                        </button>
-                        <b>||</b>
-                        <button type="button" class="btn btn-warning" data-bs-toggle="modal"
-                            data-bs-target="#approveRejectModal" data-id="{{ professional.id }}" data-action="reject"
-                            style="z-index: 10;">
-                            Reject
-                        </button>
-                        <b>||</b>
-                        <form action="{{ url_for('delete_professional', professional_id=professional.id) }}"
-                            method="POST" style="display:inline;" onsubmit="return confirmDeleteProfessional();">
-                            <button type="submit" class="btn btn-danger" style="z-index: 10;">Delete</button>
-                        </form>
-                        {% endif %}
-
+                        <div class="d-flex position-relative">
+                            {% if professional.verified_status == "approved" %}
+                            <form method="POST"
+                                action="{{ url_for('block_professional', professional_id=professional.id) }}"
+                                style="display:inline;" onsubmit="return confirmBlockProfessional();">
+                                <button type="submit" class="btn btn-danger" style="z-index: 3;">Block</button>
+                            </form>
+                            <b>||</b>
+                            <form method="POST"
+                                action="{{ url_for('unblock_professional', professional_id=professional.id) }}"
+                                style="display:inline;" onsubmit="return confirmUnBlockProfessional();">
+                                <button type="submit" class="btn btn-success" style="z-index: 3;">Unblock</button>
+                            </form>
+                            <b>||</b>
+                            <form action="{{ url_for('delete_professional', professional_id=professional.id) }}"
+                                method="POST" style="display:inline;" onsubmit="return confirmDeleteProfessional();">
+                                <button type="submit" class="btn btn-danger" style="z-index: 3;">Delete</button>
+                            </form>
+                            {%else%}
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                                data-bs-target="#approveRejectModal" data-id="{{ professional.id }}"
+                                data-action="approve" style="z-index: 3;">
+                                Approve
+                            </button>
+                            <b>||</b>
+                            <button type="button" class="btn btn-warning" data-bs-toggle="modal"
+                                data-bs-target="#approveRejectModal" data-id="{{ professional.id }}"
+                                data-action="reject" style="z-index: 3;">
+                                Reject
+                            </button>
+                            <b>||</b>
+                            <form action="{{ url_for('delete_professional', professional_id=professional.id) }}"
+                                method="POST" style="display:inline;" onsubmit="return confirmDeleteProfessional();">
+                                <button type="submit" class="btn btn-danger" style="z-index: 3;">Delete</button>
+                            </form>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -136,7 +136,17 @@
                         <p class="card-text">Phone: {{ customer.phone_no }}</p>
 
                         <!-- Stretched Link for customer details -->
-                        <a href="{{ url_for('customer_details', customer_id=customer.id) }}" class="stretched-link"></a>
+                        <!-- <a href="{{ url_for('customer_details', customer_id=customer.id) }}" class="stretched-link"></a> -->
+
+                        <form action="{{ url_for('block_customer', customer_id=customer.id) }}" method="POST"
+                            style="display:inline;" onsubmit="return confirmBlockCustomer();">
+                            <button type="submit" class="btn btn-danger">Block</button>
+                        </form>
+                        <b>||</b>
+                        <form action="{{ url_for('unblock_customer', customer_id=customer.id) }}" method="POST"
+                            style="display:inline;" onsubmit="return confirmUnBlockCustomer();">
+                            <button type="submit" class="btn btn-success">Unblock</button>
+                        </form>
 
                     </div>
                 </div>
