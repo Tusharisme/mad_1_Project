@@ -15,7 +15,9 @@ class Customer(db.Model):
     pin_code = db.Column(db.String, nullable=False)
     phone_no = db.Column(db.Integer, nullable=False)
     gender = db.Column(db.String, nullable=True)  # New column for gender (optional)
-    profile_pic = db.Column(db.String, nullable=True)  # New column for profile picture (optional)
+    profile_pic = db.Column(
+        db.String, nullable=True
+    )  # New column for profile picture (optional)
     role = db.Column(
         db.Integer, nullable=False, default=1
     )  # 0 for admin, 1 for customer
@@ -41,7 +43,9 @@ class Service_Professional(db.Model):
     pin_code = db.Column(db.String, nullable=False)
     verified_status = db.Column(db.String, nullable=True, default="Not verified yet")
     gender = db.Column(db.String, nullable=True)  # New column for gender (optional)
-    profile_pic = db.Column(db.String, nullable=True)  # New column for profile picture (optional)
+    profile_pic = db.Column(
+        db.String, nullable=True
+    )  # New column for profile picture (optional)
     average_rating = db.Column(db.Float, nullable=True)  # New column for average rating
     document = db.Column(db.String, nullable=True)  # Column to store document path
     block_status = db.Column(db.Boolean, default=False)  # Block/unblock status
@@ -64,6 +68,9 @@ class Service(db.Model):
     )  # Changed 'price' to 'base_price'
     base_time_required = db.Column(db.String, nullable=True)
     description = db.Column(db.String, nullable=False)
+    service_pic = db.Column(
+        db.String, nullable=True
+    )  # New column for service picture (optional)
 
     # Relationship with ProfessionalService (custom services per professional)
     # custom_services = db.relationship(

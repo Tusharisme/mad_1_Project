@@ -218,39 +218,50 @@
                 Add New Service
             </button>
             <!-- Modal for adding a new service -->
-            <form action="/services/add" method="POST">
-                <div class="modal fade" id="addServiceModal" tabindex="-1" aria-labelledby="addServiceModalLabel"
-                    aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
+            <!-- <form action="/services/add" method="POST"> -->
+            <!-- Modal for adding a new service -->
+            <div class="modal fade" id="addServiceModal" tabindex="-1" aria-labelledby="addServiceLabel"
+                aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form action="/services/add" method="POST" enctype="multipart/form-data">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="addServiceModalLabel">Add New Service</h5>
+                                <h5 class="modal-title" id="addServiceLabel">Add Service</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"
                                     aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
                                 <label for="service_name" class="form-label"><b>Service Name</b></label>
                                 <input type="text" class="form-control" name="service_name" id="service_name" />
+
                                 <label for="description" class="form-label"><b>Description</b></label>
                                 <input type="text" name="description" class="form-control" id="description" />
+
                                 <label for="base_price" class="form-label"><b>Base Price</b></label>
                                 <input type="text" class="form-control" name="base_price" id="base_price" />
+
                                 <label for="base_time_required" class="form-label"><b>Base Time Required
                                         (hours)</b></label>
                                 <input type="text" class="form-control" name="base_time_required"
                                     id="base_time_required" />
+
+                                <!-- Service Picture Upload -->
+                                <label for="service_pic" class="form-label"><b>Service Picture</b></label>
+                                <input type="file" class="form-control" name="service_pic" accept="image/*" />
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                 <button type="submit" class="btn btn-primary">Add Service</button>
                             </div>
-                        </div>
+                        </form>
                     </div>
                 </div>
-            </form>
+            </div>
+
+            <!-- </form> -->
 
             <!-- Modal for editing a service -->
-            <form id="editServiceForm" action="" method="POST">
+            <form id="editServiceForm" action="" method="POST" enctype="multipart/form-data">
                 <div class="modal fade" id="editServiceModal" tabindex="-1" aria-labelledby="editServiceModalLabel"
                     aria-hidden="true">
                     <div class="modal-dialog">
@@ -263,15 +274,29 @@
                             <div class="modal-body">
                                 <label for="edit_service_name" class="form-label"><b>Service Name</b></label>
                                 <input type="text" class="form-control" name="service_name" id="edit_service_name" />
+
                                 <label for="edit_description" class="form-label"><b>Description</b></label>
                                 <input type="text" name="description" class="form-control" id="edit_description" />
+
                                 <label for="edit_base_price" class="form-label"><b>Base Price</b></label>
                                 <input type="text" class="form-control" name="base_price" id="edit_base_price" />
-                                <label for="edit_base_time_required" class="form-label"><b>Base Time
-                                        Required (hours)</b></label>
+
+                                <label for="edit_base_time_required" class="form-label"><b>Base Time Required
+                                        (hours)</b></label>
                                 <input type="text" class="form-control" name="base_time_required"
                                     id="edit_base_time_required" />
 
+                                <!-- File input for editing service picture -->
+                                <label for="edit_service_pic" class="form-label"><b>Service Picture</b></label>
+                                <input type="file" class="form-control" name="service_pic" accept="image/*"
+                                    id="edit_service_pic" />
+
+                                <!-- Display current service picture (optional) -->
+                                <div id="current_service_pic_container">
+                                    <p>Current Picture:</p>
+                                    <img src="" alt="Service Picture" id="current_service_pic" width="150"
+                                        height="150" />
+                                </div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -283,7 +308,6 @@
             </form>
 
             <script>
-
                 // Get modal element
                 var editServiceModal = document.getElementById('editServiceModal');
 
@@ -298,6 +322,7 @@
                     var serviceDescription = button.getAttribute('data-description');
                     var servicePrice = button.getAttribute('data-price');
                     var serviceTime = button.getAttribute('data-time');
+                    var servicePic = button.getAttribute('data-pic'); // For the current service picture
 
                     // Update the form action to include the service ID
                     var form = document.getElementById('editServiceForm');
@@ -307,9 +332,19 @@
                     document.getElementById('edit_service_name').value = serviceName;
                     document.getElementById('edit_description').value = serviceDescription;
                     document.getElementById('edit_base_price').value = servicePrice;
-                    document.getElementById('edit_base_time_required').value = serviceTime; // Update to the new ID
+                    document.getElementById('edit_base_time_required').value = serviceTime;
+
+                    // If there is a service picture, update the image element
+                    var currentPicContainer = document.getElementById('current_service_pic_container');
+                    if (servicePic) {
+                        document.getElementById('current_service_pic').src = servicePic;
+                        currentPicContainer.style.display = 'block'; // Show the current picture section
+                    } else {
+                        currentPicContainer.style.display = 'none'; // Hide if no picture is available
+                    }
                 });
             </script>
+
             <!-- Professionals Section -->
             <h4>Professionals</h4>
             {% if professionals %}

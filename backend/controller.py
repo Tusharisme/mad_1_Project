@@ -522,7 +522,14 @@ def add_service():
         service_name = request.form.get("service_name")
         description = request.form.get("description")
         base_price = request.form.get("base_price")
-        base_time_required = request.form.get("base_time_required")  # New field
+        base_time_required = request.form.get("base_time_required")
+
+        # Handle the service picture upload
+        service_pic = None
+        if "service_pic" in request.files:
+            file = request.files["service_pic"]
+            if file and file.filename:  # Ensure a file is uploaded
+                service_pic = save_service_picture(file)
 
         # Create and add new service
         new_service = Service(
@@ -530,43 +537,65 @@ def add_service():
             description=description,
             base_price=base_price,
             base_time_required=base_time_required,
+            service_pic=(
+                f"/static/service_pics/{service_pic}" if service_pic else None
+            ),  # Store service picture path
         )
         db.session.add(new_service)
         db.session.commit()
 
-        flash(
-            "Service added successfully!", "success"
-        )  # Optional: flash message for feedback
+        flash("Service added successfully!", "success")  # Flash message for feedback
 
         # Redirect to the admin dashboard after adding the service
-        return redirect(
-            url_for("admin_dashboard")
-        )  # Assuming admin_dashboard is the endpoint for your dashboard
-
-    # If GET request, render the add service form (if needed)
-    return render_template("add_service.html")  # Render the form to add a service
+        return redirect(url_for("admin_dashboard"))
 
 
 @app.route("/services/edit/<int:service_id>", methods=["POST"])
 def edit_service(service_id):
-    new_service_name = request.form.get("service_name")
-    new_description = request.form.get("description")
-    new_base_price = request.form.get("base_price")
-    new_base_time_required = request.form.get("base_time_required")  # New field
+    service = Service.query.get_or_404(service_id)
 
-    # Fetch the service by id
-    service = Service.query.filter_by(id=service_id).first()
+    service.name = request.form.get("service_name")
+    service.description = request.form.get("description")
+    service.base_price = request.form.get("base_price")
+    service.base_time_required = request.form.get("base_time_required")
 
-    if service:
-        # Update the service details
-        service.name = new_service_name
-        service.description = new_description
-        service.base_price = new_base_price
-        service.base_time_required = new_base_time_required
-        db.session.commit()
+    # Handle the service picture upload
+    if "service_pic" in request.files:
+        file = request.files["service_pic"]
+        if file and file.filename:  # Check if a file was uploaded
+            filename = save_service_picture(file)  # Save the file and get the filename
+            service.service_pic = (
+                f"/static/service_pics/{filename}"  # Update the picture path
+            )
 
-    # Redirect to login page after successful edit
-    return redirect(url_for("user_login"))
+    db.session.commit()
+    flash("Service updated successfully!", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+# def save_service_picture(file):
+#     filename = secure_filename(file.filename)
+#     file_path = os.path.join(app.config["SERVICE_PIC_FOLDER"], filename)
+#     file.save(file_path)  # Save the file to the folder
+#     return filename  # Return the file name
+
+
+def save_service_picture(file):
+    # Get the filename and ensure it's secure
+    filename = secure_filename(file.filename)
+
+    # Get the full path where the file will be saved
+    upload_folder = current_app.config["SERVICE_PIC_FOLDER"]
+    file_path = os.path.join(upload_folder, filename)
+
+    # Ensure that the professional_pic directory exists
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
+    # Save the file
+    file.save(file_path)
+
+    return filename  # Return just the filename for storing in the database
 
 
 @app.route("/services/delete/<int:service_id>", methods=["POST"])
