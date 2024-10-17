@@ -1,8 +1,11 @@
 * {
   margin: 0;
-  background-color: #f5ecec;
+  background-color: #F5F5DC;
 }
 
+input{
+  background-color: #000000;
+}
 #panel {
   width: auto;
   /* Width now adjusts based on the viewport width */
@@ -69,5 +72,5 @@ canvas {
   border: 2px solid #000000 !important; /* Darker border color */
   height: auto;
   width: auto;
-  color: #7f0c0c;
+  /* color: #7f0c0c; */
 }

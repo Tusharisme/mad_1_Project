@@ -15,8 +15,8 @@
 <body>
     <div id="container">
         <div id="panel">
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                <div class="container-fluid">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+                <div class=" container-fluid">
                     <label>Welcome {{ customer }}</label>
 
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
@@ -29,6 +29,11 @@
                                 <a class="nav-link active" aria-current="page"
                                     href="{{ url_for('customer_summary') }}">Summary</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('customer_payments') }}">Payment</a>
+                            </li>
+
                             <li class="nav-item">
                                 <a class="nav-link active" aria-current="page"
                                     href="{{ url_for('customer_profile') }}">Profile</a>
@@ -135,9 +140,10 @@
 
             <!-- Service History Table -->
             <h4 class="mt-4">Service History</h4>
+            <br>
             {% if service_requests %}
-            <table class="table table-info table-hover">
-                <thead>
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
                     <tr>
                         <th>ID</th>
                         <th>Service Name</th>
@@ -192,7 +198,8 @@
                                             <p><strong>Service Name:</strong> <span id="modalServiceName"></span></p>
                                             <p><strong>Description:</strong> <span id="modalDescription"></span></p>
                                             <p><strong>Professional Name:</strong> <span
-                                                    id="modalProfessionalName"></span></p>
+                                                    id="modalProfessionalName"></span>
+                                            </p>
                                             <p><strong>Professional ID:</strong> <span id="modalProfessionalId"></span>
                                             </p>
                                             <div class="form-group">

@@ -31,6 +31,10 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link active" aria-current="page"
+                                    href="{{ url_for('professional_payments') }}">Payment</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page"
                                     href="{{ url_for('professional_profile') }}">Profile</a>
                             </li>
                             <li class="nav-item">
@@ -155,7 +159,7 @@
                         <td>{{ request.customer.phone_no }}</td>
                         <td>{{ request.customer.address ~ ', ' ~ request.customer.pin_code }}</td>
                         <td>
-                            {% if request.service_status == 'ongoing' %}
+                            {% if request.service_status == 'accepted' %}
                             <button class="btn btn-warning btn-sm" data-bs-toggle="modal"
                                 data-bs-target="#closeServiceModal" data-id="{{ request.id }}"
                                 data-service-name="{{ request.service.name }}"
@@ -324,7 +328,7 @@
                 document.getElementById('acceptServiceButton').addEventListener('click', function () {
                     const requestId = document.getElementById('acceptRejectRequestId').value;
 
-                    fetch('/complete_service/' + requestId, {
+                    fetch('/accept_service/' + requestId, {
                         method: 'POST'
                     })
                         .then(response => {

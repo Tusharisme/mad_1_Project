@@ -299,7 +299,7 @@ def fetch_customer_ratings():
 def fetch_service_request_summary():
     # Updated status categories with initial counts
     status_count = {
-        "Ongoing": 0,
+        "accepted": 0,
         "Closed": 0,  # Adding Closed
         "Rejected": 0,  # Adding Rejected
     }
@@ -346,31 +346,47 @@ def user_signup():
                 "/static/images/default.jpg"  # Fallback in case gender is not specified
             )
 
-        usr = Customer.query.filter_by(email=email, password=password).first()
+        existing_user = (
+            db.session.query(Customer.email)
+            .filter_by(email=email)
+            .union(db.session.query(Service_Professional.email).filter_by(email=email))
+            .first()
+        )
+
+        if existing_user:
+            flash("Email already registered. Please log in.", "danger")
+            return redirect(url_for("user_login"))
 
         # Check if it's the first customer
         first_customer = Customer.query.first()
-
         if first_customer is None:  # No customers exist, make the new user an admin
             role = 0  # Admin role
         else:
             role = 1  # Customer role
-        if not usr:
-            new_usr = Customer(
-                username=uname,
-                password=password,
-                name=fullname,
-                email=email,
-                address=address,
-                pin_code=pin_code,
-                phone_no=phone_no,
-                role=role,
-                gender=gender,  # Save the gender to the database
-                profile_pic=profile_pic,  # Save the profile picture path to the database
-            )
-            db.session.add(new_usr)
+
+        # Create the new user
+        new_usr = Customer(
+            username=uname,
+            password=password,
+            name=fullname,
+            email=email,
+            address=address,
+            pin_code=pin_code,
+            phone_no=phone_no,
+            role=role,
+            gender=gender,  # Save the gender to the database
+            profile_pic=profile_pic,  # Save the profile picture path to the database
+        )
+
+        db.session.add(new_usr)
+        db.session.commit()
+        # Create a wallet for the new customer
+        if role == 1:
+            new_wallet = Wallet(customer_id=new_usr.id, balance=0.0)
+            db.session.add(new_wallet)
             db.session.commit()
-            return render_template("login.html")
+
+        return redirect(url_for("user_login"))
 
     return render_template("signup.html")
 
@@ -457,10 +473,19 @@ def prof_register():
             profile_pic = (
                 "/static/images/default.jpg"  # Fallback in case gender is not specified
             )
-        # Check if the professional already exists by email
-        usr = Service_Professional.query.filter_by(email=email).first()
+        # Use `or_` to check if the email exists in either Customer or Service_Professional
+        existing_user = (
+            db.session.query(Customer.email)
+            .filter_by(email=email)
+            .union(db.session.query(Service_Professional.email).filter_by(email=email))
+            .first()
+        )
 
-        if not usr:
+        if existing_user:
+            flash("Email already registered. Please log in.", "danger")
+            return redirect(url_for("user_login"))
+
+        if not existing_user:
             # If file is uploaded, save it to a specific folder (adjust paths as necessary)
             document_path = None
             if formFileSm:
@@ -506,7 +531,7 @@ def prof_register():
         else:
             # If the professional already exists, render their dashboard
             return render_template(
-                "professional_dashboard.html", professional=usr.username
+                "professional_dashboard.html", professional=existing_user.username
             )
 
     # On GET request, render the service professional signup form
@@ -874,7 +899,7 @@ def customer_dashboard():
 @app.route("/services/<int:service_id>", methods=["GET"])
 def get_service_professionals(service_id):
     service = Service.query.get_or_404(service_id)
-
+    customer = Customer.query.get(session["customer_id"])
     # Fetch professionals along with their custom services related to the current service
     professionals = (
         db.session.query(Service_Professional, ProfessionalService)
@@ -891,7 +916,10 @@ def get_service_professionals(service_id):
     )
 
     return render_template(
-        "service_professionals.html", service=service, professionals=professionals
+        "service_professionals.html",
+        service=service,
+        professionals=professionals,
+        customer=customer,
     )
 
 
@@ -913,10 +941,7 @@ def book_service():
 
     # Convert requested_date and requested_time to correct format
     try:
-        # Convert requested_date (string) to a date object
         requested_date_obj = datetime.strptime(requested_date, "%Y-%m-%d").date()
-
-        # Convert requested_time (string) to a time object
         requested_time_obj = datetime.strptime(requested_time, "%H:%M").time()
     except ValueError:
         flash("Invalid date or time format.", "danger")
@@ -927,20 +952,48 @@ def book_service():
         flash("You cannot book a service for a date that has already passed.", "danger")
         return redirect(url_for("customer_dashboard"))
 
+    # Fetch the service to get the amount
+    service = Service.query.get(service_id)
+    if not service:
+        flash("Service not found.", "danger")
+        return redirect(url_for("customer_dashboard"))
+
+    amount = service.base_price  # Assuming the service has a field 'base_price'
+
     # Proceed with booking if the customer is not blocked and all data is available
-    if service_id and professional_id and customer_id:
+    if service_id and professional_id and customer_id and amount:
+        # Create the service request
         new_request = Service_Request(
             service_id=service_id,
             customer_id=customer_id,
             professional_id=professional_id,
             date_of_request=datetime.utcnow().date(),
-            requested_date=requested_date_obj,  # Save the requested date as date object
-            requested_time=requested_time_obj,  # Save the requested time as time object
+            requested_date=requested_date_obj,
+            requested_time=requested_time_obj,
             service_status="requested",
         )
+
+        # Add and commit the new service request
         db.session.add(new_request)
-        db.session.commit()
-        flash("Service booked successfully!", "success")
+        db.session.commit()  # Commit to get the new_request.id
+
+        # Create the payment record without updating the wallet
+        new_payment = Payment(
+            service_request_id=new_request.id,
+            customer_id=customer_id,
+            professional_id=professional_id,
+            amount=amount,
+            payment_status="pending",  # Set as pending
+            is_transferred=False,  # Initially, it's not transferred
+            date_of_payment=datetime.utcnow(),
+        )
+
+        db.session.add(new_payment)
+        db.session.commit()  # Commit the new payment record
+        flash(
+            "Service booked successfully! Awaiting professional's acceptance.",
+            "success",
+        )
         return redirect(url_for("customer_dashboard"))
     else:
         flash("Failed to book service. Please fill out all the fields.", "danger")
@@ -1054,7 +1107,7 @@ def professional_dashboard():
                 ).all()
                 # Check if there are any service requests
                 if not any(
-                    req.service_status in ["requested", "ongoing"]
+                    req.service_status in ["requested", "accepted"]
                     for req in service_requests
                 ):
                     flash(
@@ -1091,7 +1144,7 @@ def professional_dashboard():
         today_services = [
             req
             for req in service_requests
-            if req.service_status in ["requested", "ongoing"]
+            if req.service_status in ["requested", "accepted"]
         ]
         closed_services = [
             req for req in service_requests if req.service_status == "closed"
@@ -1177,49 +1230,151 @@ def search_customers():
     )
 
 
-@app.route("/complete_service/<int:request_id>", methods=["POST"])
-def complete_service(request_id):
-    service_request = Service_Request.query.get(request_id)
+# @app.route("/accept_service/<int:service_request_id>", methods=["POST"])
+# def accept_service(service_request_id):
+#     service_request = Service_Request.query.get(service_request_id)
+
+#     # Assuming this is how you get the professional id
+#     professional_id = session.get("professional_id")
+
+#     if service_request:
+#         # Check if the current professional is the one assigned to this service request
+#         if service_request.professional_id != professional_id:
+#             flash("You are not authorized to accept this service request.", "danger")
+#             return redirect(url_for("professional_dashboard"))
+
+#         # Change status to accepted
+#         service_request.service_status = "accepted"
+#         db.session.commit()
+
+#         # Mark payment as transferred
+#         payment = Payment.query.filter_by(service_request_id=service_request_id).first()
+#         if payment:
+#             payment.is_transferred = True  # Mark as transferred
+#             payment.payment_status = "completed"  # Update payment status as needed
+
+#             # Update professional wallet
+#             professional_wallet = ProfessionalWallet.query.filter_by(
+#                 professional_id=service_request.professional_id
+#             ).first()
+#             if professional_wallet:
+#                 professional_wallet.balance += (
+#                     payment.amount
+#                 )  # Transfer amount to professional
+
+#             db.session.commit()  # Commit all changes
+#             flash(
+#                 "Service request accepted and payment transferred to professional.",
+#                 "success",
+#             )
+#             return redirect(url_for("professional_dashboard"))
+
+
+#     flash("Service request not found.", "danger")
+#     return redirect(url_for("professional_dashboard"))
+@app.route("/accept_service/<int:service_request_id>", methods=["POST"])
+def accept_service(service_request_id):
+    service_request = Service_Request.query.get(service_request_id)
+
+    # Assuming this is how you get the professional id
     professional_id = session.get("professional_id")
 
-    if service_request and service_request.professional_id == professional_id:
-        # Update the service status to 'ongoing'
-        service_request.service_status = "ongoing"
-        service_request.date_of_completion = None  # Reset completion date if needed
+    if service_request:
+        # # Check if the current professional is the one assigned to this service request
+        # if service_request.professional_id != professional_id:
+        #     flash("You are not authorized to accept this service request.", "danger")
+        #     return redirect(url_for("professional_dashboard"))
 
-        # Commit the changes to the database
+        # Change status to accepted
+        service_request.service_status = "accepted"
         db.session.commit()
 
-        return (
-            jsonify(
-                {
-                    "message": f"Service accepted. Scheduled on {service_request.requested_date} at {service_request.requested_time}."
-                }
-            ),
-            200,
-        )
+        # Mark payment as transferred
+        payment = Payment.query.filter_by(service_request_id=service_request_id).first()
+        if payment:
+            payment.is_transferred = True  # Mark as transferred
+            payment.payment_status = "completed"  # Update payment status as needed
 
-    return (
-        jsonify({"message": "Unauthorized access or service request not found."}),
-        404,
-    )
+            # Fetch or create the professional's wallet
+            professional_wallet = ProfessionalWallet.query.filter_by(
+                professional_id=service_request.professional_id
+            ).first()
+
+            if not professional_wallet:
+                # Create a new wallet entry if it doesn't exist
+                professional_wallet = ProfessionalWallet(
+                    professional_id=service_request.professional_id, balance=0
+                )
+                db.session.add(professional_wallet)
+
+            # Transfer amount to professional
+            professional_wallet.balance += payment.amount
+
+            db.session.commit()  # Commit all changes
+            flash(
+                "Service request accepted and payment transferred to professional.",
+                "success",
+            )
+            return redirect(url_for("professional_dashboard"))
+
+    flash("Service request not found.", "danger")
+    return redirect(url_for("professional_dashboard"))
 
 
-@app.route("/reject_service/<int:request_id>", methods=["POST"])
-def reject_service(request_id):
-    service_request = Service_Request.query.get(request_id)
-    professional_id = session.get("professional_id")
+@app.route("/reject_service/<int:service_request_id>", methods=["POST"])
+def reject_service(service_request_id):
+    service_request = Service_Request.query.get(service_request_id)
 
-    if service_request and service_request.professional_id == professional_id:
-        service_request.service_status = "rejected"
-        service_request.date_of_completion = datetime.utcnow()
-        db.session.commit()
-        return jsonify({"message": "Service rejected successfully."}), 200
+    if not service_request:
+        flash("Service request not found.", "danger")
+        return redirect(url_for("professional_dashboard"))
 
-    return (
-        jsonify({"message": "Unauthorized access or service request not found."}),
-        404,
-    )
+    # Change the service request status to rejected
+    service_request.service_status = "rejected"
+
+    # Commit the change to the service request
+    db.session.commit()
+
+    # Refund to the customer only if the payment has not been transferred
+    payment = Payment.query.filter_by(service_request_id=service_request_id).first()
+
+    if payment:
+        if (
+            not payment.is_transferred
+        ):  # Only refund if the payment hasn't been transferred
+            # Fetch the customer wallet
+            customer_wallet = Wallet.query.filter_by(
+                customer_id=payment.customer_id
+            ).first()
+
+            if customer_wallet:
+                # Update the customer's wallet balance
+                customer_wallet.balance += (
+                    payment.amount
+                )  # Refund amount to customer wallet
+
+                # Commit wallet update
+                db.session.commit()
+                flash("Service request rejected. Amount refunded to customer.", "info")
+            else:
+                flash("Customer wallet not found. Unable to refund.", "warning")
+        else:
+            flash(
+                "Service request rejected, but payment was already transferred to the professional.",
+                "warning",
+            )
+
+        # Update payment status regardless of whether the refund was processed
+        payment.payment_status = "refunded"  # Update payment status
+        db.session.commit()  # Commit payment status update
+        print("Service Request:", service_request)
+        print("Payment:", payment)
+        print("Customer Wallet:", customer_wallet)
+
+    else:
+        flash("Payment record not found. No refund necessary.", "info")
+
+    return redirect(url_for("professional_dashboard"))
 
 
 @app.route("/professional_dashboard/summary")
@@ -1245,10 +1400,10 @@ def professional_summary():
             Service_Request.service_status == "requested",
         )
         .count(),
-        "ongoing": db.session.query(Service_Request)
+        "accepted": db.session.query(Service_Request)
         .filter(
             Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "ongoing",
+            Service_Request.service_status == "accepted",
         )
         .count(),
         "rejected": db.session.query(Service_Request)
@@ -1360,10 +1515,10 @@ def professional_summary_api():
             Service_Request.service_status == "requested",
         )
         .count(),
-        "ongoing": db.session.query(Service_Request)
+        "accepted": db.session.query(Service_Request)
         .filter(
             Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "ongoing",
+            Service_Request.service_status == "accepted",
         )
         .count(),
         "rejected": db.session.query(Service_Request)
@@ -1415,10 +1570,10 @@ def customer_summary():
 
     # Service status data
     service_status_data = {
-        "ongoing": db.session.query(Service_Request)
+        "accepted": db.session.query(Service_Request)
         .filter(
             Service_Request.customer_id == customer_id,
-            Service_Request.service_status == "ongoing",
+            Service_Request.service_status == "accepted",
         )
         .count(),
         "rejected": db.session.query(Service_Request)
@@ -1482,10 +1637,10 @@ def customer_summary_api():
 
     # Fetching service status data
     service_status_data = {
-        "ongoing": db.session.query(Service_Request)
+        "accepted": db.session.query(Service_Request)
         .filter(
             Service_Request.customer_id == customer_id,
-            Service_Request.service_status == "ongoing",
+            Service_Request.service_status == "accepted",
         )
         .count(),
         "rejected": db.session.query(Service_Request)
@@ -1900,3 +2055,112 @@ def unblock_professional(professional_id):
     else:
         flash("Professional not found.", "danger")
     return redirect(url_for("admin_dashboard"))  # Redirect back to the admin dashboard
+
+
+# @app.route("/process_payment", methods=["POST"])
+# def process_payment():
+#     try:
+#         # Get the form data
+#         service_id = request.form.get("service_id")
+#         professional_id = request.form.get("professional_id")
+#         customer_id = request.form.get("customer_id")
+#         amount = float(request.form.get("amount"))
+
+#         # Fetch date and time from the form data
+#         requested_date = request.form.get("requested_date")
+#         requested_time = request.form.get("requested_time")
+
+#         if not requested_date or not requested_time:
+#             flash("Please select a valid date and time for the service.", "error")
+#             return redirect(url_for("get_service_professionals", service_id=service_id))
+
+#         # Convert requested_date and requested_time to proper objects
+#         try:
+#             requested_date_obj = datetime.strptime(requested_date, "%Y-%m-%d").date()
+#             requested_time_obj = datetime.strptime(requested_time, "%H:%M").time()
+#         except ValueError:
+#             flash("Invalid date or time format.", "danger")
+#             return redirect(url_for("get_service_professionals", service_id=service_id))
+
+#         # Create the service request first
+#         service_request = Service_Request(
+#             service_id=service_id,
+#             customer_id=customer_id,
+#             professional_id=professional_id,
+#             requested_date=requested_date_obj,
+#             requested_time=requested_time_obj,
+#             service_status="requested",
+#         )
+
+#         # Add the service request to the session and commit to get its ID
+#         db.session.add(service_request)
+#         db.session.commit()
+
+#         # Now that we have the service_request_id, we can create the payment record
+#         payment = Payment(
+#             service_request_id=service_request.id,  # Use the ID from the created service request
+#             customer_id=customer_id,
+#             professional_id=professional_id,
+#             amount=amount,
+#             date_of_payment=datetime.utcnow(),
+#             payment_status="Pending",
+#         )
+
+#         # Add payment to the session and commit
+#         db.session.add(payment)
+#         db.session.commit()
+
+#         # Redirect or respond accordingly
+#         return redirect(url_for("customer_dashboard"))
+
+#     except KeyError as e:
+#         flash(f"Missing data: {str(e)}", "error")
+#         return redirect(url_for("get_service_professionals", service_id=service_id))
+
+@app.route("/customer_payments")
+def customer_payments():
+    customer_id = session.get("customer_id")  # Assuming customer_id is stored in the session
+    customer = Customer.query.filter_by(id=customer_id).first()
+
+    # Fetch the payments related to the customer and join with the Service_Professional table to get the professional name
+    payments = (
+        db.session.query(Payment, Service_Professional.name.label("professional_name"))
+        .join(Service_Professional, Payment.professional_id == Service_Professional.id)
+        .filter(Payment.customer_id == customer_id)
+        .all()
+    )
+
+    # Get the wallet balance, defaulting to 0 if wallet doesn't exist
+    wallet = Wallet.query.filter_by(customer_id=customer_id).first()
+    wallet_balance = wallet.balance if wallet else 0.0
+
+    return render_template(
+        "customer_payments.html",
+        payments=payments,  # Pass payments with professional name
+        wallet_balance=wallet_balance,
+        customer=customer,
+    )
+
+@app.route("/professional_payments")
+def professional_payments():
+    professional_id = session.get("professional_id")  # Assuming professional_id is stored in session
+    professional = Service_Professional.query.filter_by(id=professional_id).first()
+
+    # Fetch payments related to the professional and join with the Customer table to get the customer name
+    payments = (
+        db.session.query(Payment, Customer.name.label("customer_name"))
+        .join(Customer, Payment.customer_id == Customer.id)
+        .filter(Payment.professional_id == professional_id)
+        .all()
+    )
+
+    # Get the wallet balance, defaulting to 0 if wallet doesn't exist
+    wallet = ProfessionalWallet.query.filter_by(professional_id=professional_id).first()
+    wallet_balance = wallet.balance if wallet else 0.0
+
+    return render_template(
+        "professional_payments.html",
+        payments=payments,  # Pass payments with customer name
+        wallet_balance=wallet_balance,
+        professional=professional,
+    )

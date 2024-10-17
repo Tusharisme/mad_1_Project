@@ -103,6 +103,48 @@ class ProfessionalService(db.Model):
     service = db.relationship("Service", back_populates="professional_services")
 
 
+class Payment(db.Model):
+    __tablename__ = "payment"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    service_request_id = db.Column(
+        db.Integer, db.ForeignKey("service_request.id"), nullable=False
+    )
+    customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"), nullable=False)
+    professional_id = db.Column(
+        db.Integer, db.ForeignKey("service_professional.id"), nullable=False
+    )
+    amount = db.Column(db.Float, nullable=False)
+    date_of_payment = db.Column(db.DateTime, default=datetime.utcnow)
+    payment_status = db.Column(
+        db.String, nullable=False, default="Pending"
+    )  # e.g., 'Pending', 'Completed'
+    is_transferred = db.Column(
+        db.Boolean, default=False
+    )  # Track if the money is transferred
+
+    # Relationships
+    service_request = db.relationship("Service_Request", back_populates="payments")
+    customer = db.relationship("Customer", backref="payments")
+    professional = db.relationship("Service_Professional", backref="payments")
+
+
+class Wallet(db.Model):
+    __tablename__ = "wallet"
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"), nullable=False)
+    balance = db.Column(db.Float, default=0.0)
+    customer = db.relationship("Customer", backref="wallet")
+
+
+class ProfessionalWallet(db.Model):
+    __tablename__ = "professional_wallet"
+    id = db.Column(db.Integer, primary_key=True)
+    professional_id = db.Column(
+        db.Integer, db.ForeignKey("service_professional.id"), nullable=False
+    )
+    balance = db.Column(db.Float, default=0.0)
+
+
 class Service_Request(db.Model):
     __tablename__ = "service_request"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -144,6 +186,7 @@ class Service_Request(db.Model):
         "Service_Professional",
         backref=db.backref("service_requests", lazy=True, cascade="all, delete-orphan"),
     )
+    payments = db.relationship("Payment", back_populates="service_request", lazy=True)
 
 
 # old model kept for refernece
