@@ -19,9 +19,9 @@
     <div id="container">
         <div id="panel">
             <!-- Navbar -->
-            <nav class="navbar navbar-expand-lg navbar-light  sticky-top">
+            <nav class="navbar navbar-expand-lg navbar-light mb-4  sticky-top">
                 <div class="container-fluid">
-                    <label>Welcome {{ admin }}</label>
+                    <label class="navbar-brand">Welcome {{ admin }}</label>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                             <li class="nav-item">
@@ -135,10 +135,10 @@
             {% endif %}
             {% endwith %}
             <!-- Services Section -->
-            <h4>Services</h4>
+            <h4 style="text-decoration: underline;">Services</h4>
             {% if services %}
-            <table class="table table-info table-hover">
-                <thead>
+            <table class="table table-bordered  table-hover">
+                <thead class="table-dark">
                     <tr>
                         <th scope="col">ID</th>
                         <th scope="col">Service Name</th>
@@ -171,7 +171,7 @@
                 </tbody>
             </table>
             {% else %}
-            <h3>No services available</h3>
+            <h5>No services available</h5>
             {% endif %}
             <!-- JavaScript to Show Confirmation Before Delete -->
             <script>
@@ -232,22 +232,23 @@
                             </div>
                             <div class="modal-body">
                                 <label for="service_name" class="form-label"><b>Service Name</b></label>
-                                <input type="text" class="form-control" name="service_name" id="service_name" />
+                                <input type="text" class="form-control" name="service_name" id="service_name"
+                                    required />
 
                                 <label for="description" class="form-label"><b>Description</b></label>
-                                <input type="text" name="description" class="form-control" id="description" />
+                                <input type="text" name="description" class="form-control" id="description" required />
 
                                 <label for="base_price" class="form-label"><b>Base Price</b></label>
-                                <input type="text" class="form-control" name="base_price" id="base_price" />
+                                <input type="text" class="form-control" name="base_price" id="base_price" required />
 
                                 <label for="base_time_required" class="form-label"><b>Base Time Required
                                         (hours)</b></label>
                                 <input type="text" class="form-control" name="base_time_required"
-                                    id="base_time_required" />
+                                    id="base_time_required" required />
 
                                 <!-- Service Picture Upload -->
                                 <label for="service_pic" class="form-label"><b>Service Picture</b></label>
-                                <input type="file" class="form-control" name="service_pic" accept="image/*" />
+                                <input type="file" class="form-control" name="service_pic" accept="image/*" required />
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -346,10 +347,11 @@
             </script>
 
             <!-- Professionals Section -->
-            <h4>Professionals</h4>
+            <br>
+            <h4 style="text-decoration: underline;">Professionals</h4>
             {% if professionals %}
-            <table class="table table-info table-hover">
-                <thead>
+            <table class="table table-bordered  table-hover">
+                <thead class="table-dark">
                     <tr>
                         <th scope="col">ID</th>
                         <th scope="col">Name</th>
@@ -408,7 +410,7 @@
                 </tbody>
             </table>
             {% else %}
-            <h3>No professionals available</h3>
+            <h5>No professionals available</h5>
             {% endif %}
 
             <br>
@@ -476,10 +478,10 @@
                 });
             </script>
             <!-- Customers Section -->
-            <h4>Customers</h4>
+            <h4 style="text-decoration: underline;">Customers</h4>
             {% if customers %}
-            <table class="table table-info table-hover">
-                <thead>
+            <table class="table table-bordered  table-hover">
+                <thead class="table-dark">
                     <tr>
                         <th scope="col">ID</th>
                         <th scope="col">Name</th>
@@ -514,14 +516,14 @@
                 </tbody>
             </table>
             {% else %}
-            <h3>No customers available</h3>
+            <h5>No customers available</h5>
             {% endif %}
 
             <!-- Service Requests Section -->
-            <h4>Service Requests</h4>
+            <h4 style="text-decoration: underline;">Service Requests</h4>
             {% if service_requests %}
-            <table class="table table-info table-hover">
-                <thead>
+            <table class="table table-bordered  table-hover">
+                <thead class="table-dark">
                     <tr>
                         <th scope="col">Request ID</th>
                         <th scope="col">Customer ID</th>
@@ -547,7 +549,7 @@
                 </tbody>
             </table>
             {% else %}
-            <h3>No service requests available</h3>
+            <h5>No service requests available</h5>
             {% endif %}
         </div>
     </div>

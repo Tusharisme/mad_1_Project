@@ -12,48 +12,59 @@
 <body>
     <div class="container-fluid">
         <h3>Professionals for {{ service.name }}</h3>
+        <br>
         {% if professionals %}
         <div class="row">
             {% for professional, professional_service in professionals %}
             <div class="col-md-4">
                 <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ professional.name }}</h5>
-                        <p class="card-text">Experience: {{ professional.experience }} years</p>
-                        <p class="card-text">Email: {{ professional.email }}</p>
-                        <p class="card-text">Service: {{ professional.service_type }}</p>
-                        <p class="card-text">Address: {{ professional.address }}</p>
+                    <div class="row g-0">
+                        <div class="col-md-4">
+                            <!-- Professional Image -->
+                            <div class="img-container">
+                                <img src="{{ professional.profile_pic }}" alt="{{ professional.name }}"
+                                    class="img-fluid" />
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ professional.name }}</h5>
+                                <p class="card-text">Experience: {{ professional.experience }} years</p>
+                                <p class="card-text">Phone No.: {{ professional.phone_no }}</p>
 
-                        <p class="card-text">Price: $
-                            {% if professional_service.custom_price %}
-                            <span class="professional-price" id="professionalPrice-{{ professional.id }}">{{
-                                professional_service.custom_price }}</span>
-                            {% else %}
-                            <span class="professional-price" id="professionalPrice-{{ professional.id }}">{{
-                                service.base_price }}</span>
-                            {% endif %}
-                        </p>
+                                <p class="card-text">Price: ₹
+                                    {% if professional_service.custom_price %}
+                                    <span class="professional-price" id="professionalPrice-{{ professional.id }}">{{
+                                        professional_service.custom_price }}</span>
+                                    {% else %}
+                                    <span class="professional-price" id="professionalPrice-{{ professional.id }}">{{
+                                        service.base_price }}</span>
+                                    {% endif %}
+                                </p>
 
-                        <p class="card-text">Description:
-                            {% if professional_service.custom_description %}
-                            {{ professional_service.custom_description }}
-                            {% else %}
-                            {{ service.description }}
-                            {% endif %}
-                        </p>
-                        <p class="card-text">Time Required:
-                            {% if professional_service.custom_time %}
-                            {{ professional_service.custom_time }} mins
-                            {% else %}
-                            {{ service.base_time_required }} hours
-                            {% endif %}
-                        </p>
+                                <p class="card-text">Description:
+                                    {% if professional_service.custom_description %}
+                                    {{ professional_service.custom_description }}
+                                    {% else %}
+                                    {{ service.description }}
+                                    {% endif %}
+                                </p>
+                                <p class="card-text">Time Required:
+                                    {% if professional_service.custom_time %}
+                                    {{ professional_service.custom_time }} mins
+                                    {% else %}
+                                    {{ service.base_time_required }}
+                                    {% endif %}
+                                </p>
 
-                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#bookingModal"
-                            data-service-id="{{ service.id }}" data-professional-id="{{ professional.id }}"
-                            data-professional-price="{{ professional_service.custom_price if professional_service.custom_price else service.base_price }}">
-                            Book Service
-                        </button>
+                                <button type="button" class="btn btn-info" data-bs-toggle="modal"
+                                    data-bs-target="#bookingModal" data-service-id="{{ service.id }}"
+                                    data-professional-id="{{ professional.id }}"
+                                    data-professional-price="{{ professional_service.custom_price if professional_service.custom_price else service.base_price }}">
+                                    Book Service
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -65,6 +76,27 @@
         <br><br>
         <a href="{{ url_for('customer_dashboard') }}" class="btn btn-secondary mt-3">Back to Services</a>
     </div>
+
+    <!-- Add this CSS to your stylesheet or a <style> tag -->
+    <style>
+        .img-container {
+            height: 150px;
+            /* Set a fixed height */
+            width: 100%;
+            /* Full width of the column */
+            overflow: hidden;
+            /* Hide overflow to prevent stretching */
+        }
+
+        .img-container img {
+            height: 100%;
+            /* Full height of the container */
+            width: auto;
+            /* Maintain aspect ratio */
+            object-fit: cover;
+            /* Cover the container without stretching */
+        }
+    </style>
 
     <!-- Booking Modal for Selecting Date and Time -->
     <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
@@ -132,7 +164,7 @@
             priceInput.value = professionalPrice;
 
             // Display the payment amount
-            document.getElementById('paymentAmount').innerText = 'Amount: $' + parseFloat(professionalPrice).toFixed(2);
+            document.getElementById('paymentAmount').innerText = 'Amount: ₹' + parseFloat(professionalPrice).toFixed(2);
         });
 
         function validatePaymentForm() {

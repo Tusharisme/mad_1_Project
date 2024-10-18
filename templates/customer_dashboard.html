@@ -15,9 +15,9 @@
 <body>
     <div id="container">
         <div id="panel">
-            <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+            <nav class="navbar navbar-expand-lg navbar-light mb-4  mb-4">
                 <div class=" container-fluid">
-                    <label>Welcome {{ customer }}</label>
+                    <label class="navbar-brand">Welcome {{ customer }}</label>
 
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
@@ -115,9 +115,14 @@
                     <div class="card h-100">
                         <a href="{{ url_for('get_service_professionals', service_id=service.id) }}"
                             class="stretched-link"></a>
-                        <div class="card-body">
+                        <div class="card-body text-center" style="border-radius: 15px;">
+                            <img src="{{ service.service_pic }}" alt="{{ service.name }}" class="card-img-top mb-3"
+                                style="max-height: 150px; object-fit: cover;">
                             <h5 class="card-title">{{ service.name }}</h5>
-                            <!-- Optionally, you can add more details about the service here -->
+                            <p class="card-text"><b>Services Starting from: ₹ {{service.base_price}}</b></p>
+                            <p class="card-text"><b>Service Description: {{service.description}}</b></p>
+
+
                         </div>
                     </div>
                 </div>
@@ -142,7 +147,7 @@
             <h4 class="mt-4">Service History</h4>
             <br>
             {% if service_requests %}
-            <table class="table table-bordered table-striped">
+            <table class="table table-bordered ">
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>

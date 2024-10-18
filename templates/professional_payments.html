@@ -16,7 +16,7 @@
     <div id="container">
         <div id="panel">
             <!-- Navbar Section -->
-            <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+            <nav class="navbar navbar-expand-lg navbar-light mb-4  mb-4">
                 <div class="container-fluid">
                     <label class="navbar-brand">Welcome {{ professional.username }}</label>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
@@ -26,21 +26,21 @@
                                     href="{{ url_for('professional_dashboard') }}">Home</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link active" aria-current="page"
-                                    href="{{ url_for('professional_summary') }}">Summary</a>
+                                <a class="nav-link active" href="{{ url_for('professional_summary') }}">Summary</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link active" aria-current="page"
-                                    href="{{ url_for('professional_profile') }}">Profile</a>
+                                    href="{{ url_for('professional_payments') }}">Payment</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link active" aria-current="page" href="{{ url_for('logout') }}">Logout</a>
+                                <a class="nav-link active" href="{{ url_for('professional_profile') }}">Profile</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="{{ url_for('logout') }}">Logout</a>
                             </li>
                         </ul>
                         <!-- Wallet Balance Display -->
-                        <b><span class="navbar-text">
-                            Wallet Balance: ₹ {{ wallet_balance }}
-                        </span></b>
+                        <b><span class="navbar-text">Wallet Balance: ₹ {{ wallet_balance }}</span></b>
                     </div>
                 </div>
             </nav>
@@ -59,7 +59,8 @@
             <!-- Payment History Section -->
             <h2>Payment History</h2>
             <br>
-            <table class="table table-bordered table-striped">
+            {% if payments %}
+            <table class="table table-bordered ">
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
@@ -81,6 +82,9 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <p>No transactions available.</p>
+            {% endif %}
         </div>
     </div>
 </body>

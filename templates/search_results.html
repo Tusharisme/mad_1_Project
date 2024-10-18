@@ -13,7 +13,16 @@
 
 <body>
     <div class="container-fluid">
+        <button class="btn btn-secondary" onclick="goBack()"><-Back</button>
+
+        <script>
+            function goBack() {
+                window.history.back();
+            }
+        </script>
+        <br>
         <h3>{{ category }}</h3>
+
         <div class="row">
             {% if results %}
 
@@ -23,7 +32,7 @@
                 <div class="card position-relative">
                     <div class="card-body">
                         <h5 class="card-title">{{ service.name }}</h5>
-                        <p class="card-text">Price: ${{ service.base_price }}</p>
+                        <p class="card-text">Price: ₹ {{ service.base_price }}</p>
                         <p class="card-text">Description: {{ service.description }}</p>
 
                         <!-- Stretched Link: This will make the entire card clickable -->

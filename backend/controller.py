@@ -70,9 +70,6 @@ def user_login():
                 usr1.username
             )  # Store professional username in session
             session["professional_id"] = usr1.id  # Store professional ID in session
-            session["role"] = (
-                2  # Store user role in session (assuming 2 is for service professional)
-            )
             return redirect(url_for("professional_dashboard"))
 
         # Invalid credentials message
@@ -1775,13 +1772,19 @@ def update_professional_services():
                 f"custom_description_{service.service_id}"
             )
             custom_time_required = request.form.get(f"custom_time_{service.service_id}")
+            base_price = service.service.base_price
+
 
             if custom_price:
-                service.custom_price = float(custom_price)
+                service.custom_price = (custom_price)
             if custom_description:
                 service.custom_description = custom_description
             if custom_time_required:
                 service.custom_time_required = custom_time_required
+            if custom_price < str(base_price):
+                flash("You cannot enter a custom price less than the base price.", "danger")
+                return redirect(url_for('professional_profile'))  # Redirect back to the profile
+
 
         db.session.commit()
         flash("Services updated successfully!", "success")
@@ -2117,9 +2120,12 @@ def unblock_professional(professional_id):
 #         flash(f"Missing data: {str(e)}", "error")
 #         return redirect(url_for("get_service_professionals", service_id=service_id))
 
+
 @app.route("/customer_payments")
 def customer_payments():
-    customer_id = session.get("customer_id")  # Assuming customer_id is stored in the session
+    customer_id = session.get(
+        "customer_id"
+    )  # Assuming customer_id is stored in the session
     customer = Customer.query.filter_by(id=customer_id).first()
 
     # Fetch the payments related to the customer and join with the Service_Professional table to get the professional name
@@ -2141,9 +2147,12 @@ def customer_payments():
         customer=customer,
     )
 
+
 @app.route("/professional_payments")
 def professional_payments():
-    professional_id = session.get("professional_id")  # Assuming professional_id is stored in session
+    professional_id = session.get(
+        "professional_id"
+    )  # Assuming professional_id is stored in session
     professional = Service_Professional.query.filter_by(id=professional_id).first()
 
     # Fetch payments related to the professional and join with the Customer table to get the customer name
@@ -2164,3 +2173,61 @@ def professional_payments():
         wallet_balance=wallet_balance,
         professional=professional,
     )
+
+
+@app.route("/forgot_password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email").strip()  # Remove any extra spaces
+        phone = request.form.get("phone_no").strip()  # Remove extra spaces
+
+        # Check if the phone number contains only digits
+        if not phone.isdigit():
+            flash("Phone number should contain only digits.", "danger")
+            return redirect(url_for("forgot_password"))
+
+        # Convert phone number to integer
+        phone = int(phone)
+
+        # Fetch user to verify email and phone number
+        user = Customer.query.filter_by(email=email).first()
+        user1 = Service_Professional.query.filter_by(email=email).first()
+
+        if user and user.phone_no == phone:  # Compare phone numbers
+            return redirect(url_for("reset_password", user_id=user.id))
+
+        if user1 and user1.phone_no == phone:  # Compare phone numbers
+            return redirect(url_for("reset_password", user_id=user1.id))
+
+        flash("Invalid email or phone number.", "danger")
+        return redirect(url_for("forgot_password"))
+
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset_password/<int:user_id>", methods=["GET", "POST"])
+def reset_password(user_id):
+    if request.method == "POST":
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+
+        if new_password != confirm_password:
+            flash("Passwords do not match!", "danger")
+            return redirect(url_for("reset_password", user_id=user_id))
+
+        # Hash and update the new password
+        user = Customer.query.get(user_id)
+        if user:
+            user.password = new_password
+            db.session.commit()  # Assuming you have a session to commit the change
+            flash("Password has been updated successfully!", "success")
+            return redirect(url_for("user_login"))
+
+        user1 = Service_Professional.query.get(user_id)
+        if user1:
+            user1.password = new_password
+            db.session.commit()  # Assuming you have a session to commit the change
+            flash("Password has been updated successfully!", "success")
+            return redirect(url_for("user_login"))
+
+    return render_template("reset_password.html", user_id=user_id)

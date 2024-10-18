@@ -88,7 +88,7 @@ class ProfessionalService(db.Model):
         db.Integer, db.ForeignKey("service_professional.id"), nullable=False
     )
     service_id = db.Column(db.Integer, db.ForeignKey("service.id"), nullable=False)
-    custom_price = db.Column(db.Float, nullable=True)
+    custom_price = db.Column(db.Integer, nullable=True)
     custom_description = db.Column(db.String, nullable=True)
     custom_time_required = db.Column(
         db.String

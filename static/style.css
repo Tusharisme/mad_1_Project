@@ -1,9 +1,9 @@
 * {
   margin: 0;
-  background-color: #F5F5DC;
+  background-color: #f5f5dc;
 }
 
-input{
+input {
   background-color: #000000;
 }
 #panel {
@@ -72,5 +72,14 @@ canvas {
   border: 2px solid #000000 !important; /* Darker border color */
   height: auto;
   width: auto;
+  border-radius: 5% !important;
   /* color: #7f0c0c; */
+}
+.nav-link {
+  font-weight: normal; /* Ensure the default weight is normal */
+}
+
+.nav-link:hover {
+  background-color: #f9fbfe; /* Change background color on hover */
+  font-weight: 500; /* Make the text bold on hover */
 }
