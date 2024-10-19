@@ -4,11 +4,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/static/style.css" />
   <!--calling external styles -->
   <!--third party bootstrap-->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/static/style.css" />
   <title>Professional Signup Page</title>
 </head>
 
@@ -16,7 +16,7 @@
   <div id="container">
     <div class="header-section text-center">
       <a class="navbar-brand" href="{{ url_for('home') }}" style="color: black;">
-        <h3>A to Z Household Services</h3>
+        <h3 style="text-decoration: underline;">A to Z Household Services</h3>
       </a>
     </div>
     <div id="panel">
@@ -33,30 +33,30 @@
       {% endif %}
       {% endwith %}
       <div id="input-form">
-        <h2>Service Professional Signup</h2>
+        <h2 style="text-decoration: underline;">Service Professional Signup</h2>
         <form action="/register" method="POST" enctype="multipart/form-data">
           <div class="mb-3">
-            <label for="username" class="form-label"><b>User Name</b></label>
+            <label for="username" class="form-label" style="text-decoration: underline;"><b>User Name</b></label>
             <input type="text" class="form-control" id="username" name="uname" aria-describedby="userHelp" required />
           </div>
           <div class="mb-3">
-            <label for="pwd" class="form-label"><b>Password</b></label>
+            <label for="pwd" class="form-label" style="text-decoration: underline;"><b>Password</b></label>
             <input type="password" class="form-control" id="pwd" name="pwd" required />
           </div>
           <div class="mb-3">
-            <label for="fullname" class="form-label"><b>Full Name</b></label>
+            <label for="fullname" class="form-label" style="text-decoration: underline;"><b>Full Name</b></label>
             <input type="text" name="full_name" class="form-control" id="fullname" required />
           </div>
           <div class="mb-3">
-            <label for="email" class="form-label"><b>Email</b></label>
+            <label for="email" class="form-label" style="text-decoration: underline;"><b>Email</b></label>
             <input type="email" class="form-control" name="email" id="email" aria-describedby="emailHelp" required />
           </div>
           <div class="mb-3">
-            <label for="phone_no" class="form-label"><b>Phone No.:</b></label>
+            <label for="phone_no" class="form-label" style="text-decoration: underline;"><b>Phone No.:</b></label>
             <input type="text" class="form-control" name="phone_no" id="phone_no" required />
           </div>
           <div class="mb-3">
-            <label for="gender" class="form-label"><b>Gender:</b></label>
+            <label for="gender" class="form-label" style="text-decoration: underline;"><b>Gender:</b></label>
             <select class="form-select" name="gender" id="gender" required>
               <option value="" selected disabled>Select your gender</option>
               <option value="Male">Male</option>
@@ -64,25 +64,28 @@
             </select>
           </div>
           <div class="mb-3">
-            <label for="experience" class="form-label"><b>Experience (in years)</b></label>
+            <label for="experience" class="form-label" style="text-decoration: underline;"><b>Experience (in
+                years)</b></label>
             <input type="text" class="form-control" name="experience" id="experience" required />
           </div>
           <div class="mb-3">
-            <label for="document" class="form-label"><b>Attach Documents (Single PDF)</b></label>
+            <label for="document" class="form-label" style="text-decoration: underline;"><b>Attach Documents (Single
+                PDF)</b></label>
             <input type="file" class="form-control form-control-sm" name="document" id="document" required />
           </div>
           <div class="mb-3">
-            <label for="address" class="form-label"><b>Address</b></label>
+            <label for="address" class="form-label" style="text-decoration: underline;"><b>Address</b></label>
             <input type="text" class="form-control" name="address" id="address" required />
           </div>
           <div class="mb-3">
-            <label for="pin_code" class="form-label"><b>Pin Code:</b></label>
+            <label for="pin_code" class="form-label" style="text-decoration: underline;"><b>Pin Code:</b></label>
             <input type="text" class="form-control" name="pin_code" id="pin_code" required />
           </div>
 
           <!-- New Section for Selecting Service Type -->
           <div class="mb-3">
-            <label for="service_ids" class="form-label"><b>Select Service Type</b></label>
+            <label for="service_ids" class="form-label" style="text-decoration: underline;"><b>Select Service
+                Type</b></label>
             <select class="form-select" id="service_ids" name="service_type" required>
               {% for service in available_services %}
               <option value="{{ service.name }}">{{ service.name }}</option>
@@ -90,7 +93,7 @@
             </select>
           </div>
 
-          <button type="submit" class="btn btn-success">Register</button><br /><br />
+          <button type="submit" class="btn btn-success-custom">Register</button><br /><br />
 
           <!-- Only show this if there is a message  -->
           {% if msg %}
@@ -104,6 +107,24 @@
     </div>
   </div>
   </div>
+  <!-- Add Font Awesome CSS for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <!-- Footer -->
+  <footer class="text-center py-3">
+    <div class="container">
+      <p>&copy; 2024 A to Z Household Services. All rights reserved.</p>
+      <div class="social-icons">
+        <a href="https://www.linkedin.com/in/tushar-jalan-2k5/" target="_blank" class="me-3">
+          <i class="fab fa-linkedin fa-lg"></i>
+        </a>
+        <a href="https://github.com/Tusharisme" target="_blank">
+          <i class="fab fa-github fa-lg"></i>
+        </a>
+      </div>
+    </div>
+  </footer>
+
 </body>
 
 </html>

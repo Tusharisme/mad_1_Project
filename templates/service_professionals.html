@@ -5,76 +5,86 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Service Professionals</title>
-    <link rel="stylesheet" href="/static/style.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/style.css" />
 </head>
 
 <body>
     <div class="container-fluid">
-        <h3>Professionals for {{ service.name }}</h3>
-        <br>
-        {% if professionals %}
-        <div class="row">
-            {% for professional, professional_service in professionals %}
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="row g-0">
-                        <div class="col-md-4">
-                            <!-- Professional Image -->
-                            <div class="img-container">
-                                <img src="{{ professional.profile_pic }}" alt="{{ professional.name }}"
-                                    class="img-fluid" />
-                            </div>
-                        </div>
-                        <div class="col-md-8">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ professional.name }}</h5>
-                                <p class="card-text">Experience: {{ professional.experience }} years</p>
-                                <p class="card-text">Phone No.: {{ professional.phone_no }}</p>
+        <button class="btn btn-secondary" onclick="goBack()"> <-Back </button>
+                <script>
+                    function goBack() {
+                        window.history.back();
+                    }
+                </script>
+                <br>
+                <br>
+                <h3 style="text-decoration: underline;">Professionals for {{ service.name }}</h3>
+                <br>
+                {% if professionals %}
+                <div class="row">
+                    {% for professional, professional_service in professionals %}
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="row g-0">
+                                <div class="col-md-4">
+                                    <!-- Professional Image -->
+                                    <div class="img-container">
+                                        <img src="{{ professional.profile_pic }}" alt="{{ professional.name }}"
+                                            class="img-fluid" />
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ professional.name }}</h5>
+                                        <p class="card-text">Experience: {{ professional.experience }} years</p>
+                                        <p class="card-text">Phone No.: {{ professional.phone_no }}</p>
 
-                                <p class="card-text">Price: ₹
-                                    {% if professional_service.custom_price %}
-                                    <span class="professional-price" id="professionalPrice-{{ professional.id }}">{{
-                                        professional_service.custom_price }}</span>
-                                    {% else %}
-                                    <span class="professional-price" id="professionalPrice-{{ professional.id }}">{{
-                                        service.base_price }}</span>
-                                    {% endif %}
-                                </p>
+                                        <p class="card-text">Price: ₹
+                                            {% if professional_service.custom_price %}
+                                            <span class="professional-price"
+                                                id="professionalPrice-{{ professional.id }}">{{
+                                                professional_service.custom_price }}</span>
+                                            {% else %}
+                                            <span class="professional-price"
+                                                id="professionalPrice-{{ professional.id }}">{{
+                                                service.base_price }}</span>
+                                            {% endif %}
+                                        </p>
 
-                                <p class="card-text">Description:
-                                    {% if professional_service.custom_description %}
-                                    {{ professional_service.custom_description }}
-                                    {% else %}
-                                    {{ service.description }}
-                                    {% endif %}
-                                </p>
-                                <p class="card-text">Time Required:
-                                    {% if professional_service.custom_time %}
-                                    {{ professional_service.custom_time }} mins
-                                    {% else %}
-                                    {{ service.base_time_required }}
-                                    {% endif %}
-                                </p>
+                                        <p class="card-text">Description:
+                                            {% if professional_service.custom_description %}
+                                            {{ professional_service.custom_description }}
+                                            {% else %}
+                                            {{ service.description }}
+                                            {% endif %}
+                                        </p>
+                                        <p class="card-text">Time Required:
+                                            {% if professional_service.custom_time %}
+                                            {{ professional_service.custom_time }} mins
+                                            {% else %}
+                                            {{ service.base_time_required }}
+                                            {% endif %}
+                                        </p>
 
-                                <button type="button" class="btn btn-info" data-bs-toggle="modal"
-                                    data-bs-target="#bookingModal" data-service-id="{{ service.id }}"
-                                    data-professional-id="{{ professional.id }}"
-                                    data-professional-price="{{ professional_service.custom_price if professional_service.custom_price else service.base_price }}">
-                                    Book Service
-                                </button>
+                                        <button type="button" class="btn btn-info" data-bs-toggle="modal"
+                                            data-bs-target="#bookingModal" data-service-id="{{ service.id }}"
+                                            data-professional-id="{{ professional.id }}"
+                                            data-professional-price="{{ professional_service.custom_price if professional_service.custom_price else service.base_price }}">
+                                            Book Service
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p>No professionals available for this service.</p>
-        {% endif %}
-        <br><br>
-        <a href="{{ url_for('customer_dashboard') }}" class="btn btn-secondary mt-3">Back to Services</a>
+                {% else %}
+                <p><b>No professionals available for this service.</b></p>
+                {% endif %}
+                <br><br>
+                <a href="{{ url_for('customer_dashboard') }}" class="btn btn-secondary mt-3">Back to Services</a>
     </div>
 
     <!-- Add this CSS to your stylesheet or a <style> tag -->
@@ -86,6 +96,7 @@
             /* Full width of the column */
             overflow: hidden;
             /* Hide overflow to prevent stretching */
+            border-radius: 10%;
         }
 
         .img-container img {
@@ -95,13 +106,14 @@
             /* Maintain aspect ratio */
             object-fit: cover;
             /* Cover the container without stretching */
+
         }
     </style>
 
     <!-- Booking Modal for Selecting Date and Time -->
     <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
+            <div class="modal-content custom-modal">
                 <div class="modal-header">
                     <h5 class="modal-title" id="bookingModalLabel">Book Service</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -130,14 +142,15 @@
                         </div>
                         <div class="mb-3">
                             <label for="expirationDate" class="form-label">Expiration Date</label>
-                            <input type="text" class="form-control" id="expirationDate" placeholder="MM/YY" required>
+                            <input type="text" class="form-control" id="expirationDate" placeholder="MM/YY"
+                                maxlength="5" required>
                         </div>
                         <div class="mb-3">
                             <label for="cvv" class="form-label">CVV</label>
                             <input type="text" class="form-control" id="cvv" maxlength="3" required>
                         </div>
 
-                        <button type="submit" class="btn btn-primary">Confirm Booking and Pay</button>
+                        <button type="submit" class="btn btn-custom">Confirm Booking and Pay</button>
                     </form>
                 </div>
             </div>
@@ -184,6 +197,24 @@
             return true;
         }
     </script>
+    <!-- Add Font Awesome CSS for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Footer -->
+    <footer class="text-center py-3">
+        <div class="container">
+            <p>&copy; 2024 A to Z Household Services. All rights reserved.</p>
+            <div class="social-icons">
+                <a href="https://www.linkedin.com/in/tushar-jalan-2k5/" target="_blank" class="me-3">
+                    <i class="fab fa-linkedin fa-lg"></i>
+                </a>
+                <a href="https://github.com/Tusharisme" target="_blank">
+                    <i class="fab fa-github fa-lg"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
 </body>
 
 </html>

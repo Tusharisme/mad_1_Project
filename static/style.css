@@ -1,21 +1,14 @@
-* {
-  margin: 0;
-  background-color: #f5f5dc;
+/* Avoid the global selector for margin and background */
+body {
+  background-color: #f4eae1;
 }
 
-input {
-  background-color: #000000;
-}
 #panel {
   width: auto;
-  /* Width now adjusts based on the viewport width */
   margin: auto;
   height: auto;
-  /* Height adjusts based on the viewport height */
   text-align: center;
-  /* Centers the inner form */
   padding: 2vh;
-  /* Padding based on viewport height */
   border: 0px solid black;
   border-radius: 10px;
 }
@@ -23,63 +16,166 @@ input {
 #input-form {
   border: 3px solid black;
   width: 50vw;
-  /* Adjust width to scale with the viewport */
   height: auto;
-  /* Adjust height to scale with the viewport */
   margin: auto;
   margin-top: 5vh;
-  /* Margin-top in viewport units */
   border-radius: 20px;
   padding: 2vh;
-  /* Padding adjusted to scale with the viewport */
 }
 
 #container {
   width: auto;
-  /* Adjusts based on the viewport width */
   margin: auto;
   padding: 2vh;
-  /* Padding adjusts based on viewport height */
-  border: 1px solid #ccc;
-}
-
-.header-section {
-  margin-bottom: auto;
-  /* Margin-bottom in viewport units 2vh*/
+  border: 2px solid #ccc;
 }
 
 .header-section h3 {
   font-size: 2rem;
   text-align: center;
-  /* Centers the heading */
   margin-bottom: auto;
-  /* Margin-bottom in viewport units  1vh*/
-}
-
-.chart-container {
-  display: flex;
-  justify-content: space-around;
-  margin: 20px 0; /* Margin for spacing */
-}
-
-canvas {
-  max-width: 400px; /* Max width for the charts */
-  max-height: 400px; /* Increase max height for the charts */
-  height: 400px; /* Set an explicit height */
 }
 
 .card {
-  border: 2px solid #000000 !important; /* Darker border color */
+  border: 2px solid #000000 !important;
   height: auto;
   width: auto;
+  background-color: #e0e0d6;
   border-radius: 5% !important;
-  /* color: #7f0c0c; */
-}
-.nav-link {
-  font-weight: normal; /* Ensure the default weight is normal */
 }
 
-.nav-link:hover {
-  background-color: #f9fbfe; /* Change background color on hover */
-  font-weight: 500; /* Make the text bold on hover */
+/* Custom Navbar Styles */
+
+/* Navbar link styles */
+.navbar-custom .nav-link {
+  color: #333333; /* Dark Gray for links */
+}
+
+/* Navbar link hover effect */
+.navbar-custom .nav-link:hover {
+  background-color: #e0d0c0; /* Slightly lighter on hover */
+  border-radius: 10px; /* Adjust this value for more or less rounding */
+  font-weight: 500; /* Keep the font weight as desired */
+}
+
+/* Or if you choose soft cream for the navbar */
+.navbar-custom {
+  background-color: #f8f0e2;
+  border-radius: 10px; /* Adjust this value for more or less rounding */
+  color: #333333; /* Dark Gray for text */
+}
+
+.modal {
+  z-index: 1050;
+}
+
+.modal-backdrop {
+  z-index: 1040;
+  backdrop-filter: blur(50px) !important;
+  background-color: rgb(236, 235, 233, 1) !important;
+}
+/* Custom CSS for Modal */
+.custom-modal {
+  background-color: #f5f5dc; /* Light beige background to match your theme */
+}
+
+.custom-modal .modal-header {
+  background-color: #e0e0e0; /* Slightly darker for contrast */
+  color: #333333 !important; /* Dark Gray text for header */
+}
+
+.custom-modal .modal-body {
+  color: #333333 !important; /* Dark Gray text for body */
+}
+
+.custom-modal .modal-title {
+  color: #333333; /* Dark Gray title */
+}
+
+.social-icons a {
+  color: #333;
+  /* Icon color */
+  margin: 0 10px;
+  text-decoration: none;
+}
+
+.social-icons a:hover {
+  color: #0077b5;
+  /* LinkedIn hover color */
+}
+
+/* Custom CSS for Buttons */
+.btn-custom {
+  background-color: #8b4513; /* Saddle Brown */
+  color: #ffffff; /* White text */
+}
+
+.btn-custom:hover {
+  background-color: #7a3e10; /* Darker shade on hover */
+}
+/* Danger Button */
+.btn-danger-custom {
+  background-color: #c0392b; /* Crimson Red */
+  color: #ffffff; /* White text */
+}
+
+.btn-danger-custom:hover {
+  background-color: #a93226; /* Darker Crimson on hover */
+}
+
+/* Success Button */
+.btn-success-custom {
+  background-color: #27ae60; /* Emerald Green */
+  color: #ffffff; /* White text */
+}
+
+.btn-success-custom:hover {
+  background-color: #1e824c; /* Darker Emerald on hover */
+}
+/* Custom CSS for Table Header */
+.table-dark-custom {
+  background-color: #d1c6a7; /* Dark Beige */
+  color: #333333; /* Dark Gray for text */
+}
+
+/* Optional: Hover effect for rows */
+.table-dark-custom tr:hover {
+  background-color: #e0e0d6; /* Light gray on hover */
+}
+/* Custom Table Styles */
+.table-custom {
+  border-radius: 10px; /* Rounded corners */
+  overflow: hidden; /* Ensure corners are clipped */
+}
+
+
+
+.table-custom tbody td {
+  color: #333333; /* Dark Gray text for body */
+}
+
+/* Ensure the links in the table match the text color */
+.table-custom tbody a {
+  color: #333333; /* Dark Gray to match text */
+  text-decoration: none; /* Optional: Remove underline */
+}
+
+.table-custom tbody a:hover {
+  color: #8b4513; /* Saddle Brown for hover effect */
+}
+
+/* Custom Input Styles */
+input {
+  background-color: #e8e8e4 !important; /* Background color to match your theme */
+  color: #333333 !important; /* Text color */
+  /* border: 2px solid #8b4513 !important; Saddle Brown border */
+  border-radius: 5px !important; /* Rounded corners */
+  padding: 10px !important; /* Padding for comfort */
+  font-size: 1rem !important; /* Font size */
+}
+
+input:focus {
+  border-color: #7a3e10 !important; /* Darker shade on focus */
+  outline: none !important; /* Remove default outline */
+  box-shadow: 0 0 5px rgba(139, 69, 19, 0.5) !important; /* Add shadow for focus effect */
 }

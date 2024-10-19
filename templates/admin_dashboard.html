@@ -19,7 +19,7 @@
     <div id="container">
         <div id="panel">
             <!-- Navbar -->
-            <nav class="navbar navbar-expand-lg navbar-light mb-4  sticky-top">
+            <nav class="navbar navbar-expand-lg navbar-light  mb-4 sticky-top navbar-custom ">
                 <div class="container-fluid">
                     <label class="navbar-brand">Welcome {{ admin }}</label>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
@@ -137,8 +137,8 @@
             <!-- Services Section -->
             <h4 style="text-decoration: underline;">Services</h4>
             {% if services %}
-            <table class="table table-bordered  table-hover">
-                <thead class="table-dark">
+            <table class="table table-bordered  table-hover table-custom">
+                <thead class="table-dark-custom">
                     <tr>
                         <th scope="col">ID</th>
                         <th scope="col">Service Name</th>
@@ -155,7 +155,7 @@
                         <td>{{ service.base_price }}</td>
                         <td>{{ professional_count }}</td> <!-- Display Professional Count -->
                         <td>
-                            <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                            <button type="button" class="btn btn-success-custom" data-bs-toggle="modal"
                                 data-bs-target="#editServiceModal" data-id="{{ service.id }}"
                                 data-name="{{ service.name }}" data-description="{{ service.description }}"
                                 data-price="{{ service.base_price }}"
@@ -163,7 +163,7 @@
                             <b>||</b>
                             <form action="{{ url_for('delete_service', service_id=service.id) }}" method="POST"
                                 style="display:inline;" onsubmit="return confirmCancel();">
-                                <button type="submit" class="btn btn-danger">Delete</button>
+                                <button type="submit" class="btn btn-danger-custom">Delete</button>
                             </form>
                         </td>
                     </tr>
@@ -214,16 +214,16 @@
             <br>
 
             <!-- Button to trigger modal -->
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addServiceModal">
+            <button type="button" class="btn btn-custom" data-bs-toggle="modal" data-bs-target="#addServiceModal">
                 Add New Service
             </button>
             <!-- Modal for adding a new service -->
             <!-- <form action="/services/add" method="POST"> -->
             <!-- Modal for adding a new service -->
-            <div class="modal fade" id="addServiceModal" tabindex="-1" aria-labelledby="addServiceLabel"
+            <div class="modal fade " id="addServiceModal" tabindex="-1" aria-labelledby="addServiceLabel"
                 aria-hidden="true">
                 <div class="modal-dialog">
-                    <div class="modal-content">
+                    <div class="modal-content custom-modal ">
                         <form action="/services/add" method="POST" enctype="multipart/form-data">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="addServiceLabel">Add Service</h5>
@@ -252,7 +252,7 @@
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" class="btn btn-primary">Add Service</button>
+                                <button type="submit" class="btn btn-custom">Add Service</button>
                             </div>
                         </form>
                     </div>
@@ -266,7 +266,7 @@
                 <div class="modal fade" id="editServiceModal" tabindex="-1" aria-labelledby="editServiceModalLabel"
                     aria-hidden="true">
                     <div class="modal-dialog">
-                        <div class="modal-content">
+                        <div class="modal-content custom-modal">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="editServiceModalLabel">Edit Service</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"
@@ -301,7 +301,7 @@
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                <button type="submit" class="btn btn-custom">Save Changes</button>
                             </div>
                         </div>
                     </div>
@@ -350,8 +350,8 @@
             <br>
             <h4 style="text-decoration: underline;">Professionals</h4>
             {% if professionals %}
-            <table class="table table-bordered  table-hover">
-                <thead class="table-dark">
+            <table class="table table-bordered  table-hover table-custom">
+                <thead class="table-dark-custom">
                     <tr>
                         <th scope="col">ID</th>
                         <th scope="col">Name</th>
@@ -373,21 +373,21 @@
                             <form method="POST"
                                 action="{{ url_for('block_professional', professional_id=professional.id) }}"
                                 style="display:inline;" onsubmit="return confirmBlockProfessional();">
-                                <button type="submit" class="btn btn-danger">Block</button>
+                                <button type="submit" class="btn btn-danger-custom">Block</button>
                             </form>
                             <b>||</b>
                             <form method="POST"
                                 action="{{ url_for('unblock_professional', professional_id=professional.id) }}"
                                 style="display:inline;" onsubmit="return confirmUnBlockProfessional();">
-                                <button type="submit" class="btn btn-success">Unblock</button>
+                                <button type="submit" class="btn btn-success-custom">Unblock</button>
                             </form>
                             <b>||</b>
                             <form action="{{ url_for('delete_professional', professional_id=professional.id) }}"
                                 method="POST" style="display:inline;" onsubmit="return confirmDeleteProfessional();">
-                                <button type="submit" class="btn btn-danger">Delete</button>
+                                <button type="submit" class="btn btn-danger-custom">Delete</button>
                             </form>
                             {%else%}
-                            <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                            <button type="button" class="btn btn-success-custom" data-bs-toggle="modal"
                                 data-bs-target="#approveRejectModal" data-id="{{ professional.id }}"
                                 data-action="approve">
                                 Approve
@@ -401,7 +401,7 @@
                             <b>||</b>
                             <form action="{{ url_for('delete_professional', professional_id=professional.id) }}"
                                 method="POST" style="display:inline;" onsubmit="return confirmDeleteProfessional();">
-                                <button type="submit" class="btn btn-danger">Delete</button>
+                                <button type="submit" class="btn btn-danger-custom">Delete</button>
                             </form>
                         </td>
                         {% endif %}
@@ -420,7 +420,7 @@
                 <div class="modal fade" id="approveRejectModal" tabindex="-1" aria-labelledby="approveRejectModalLabel"
                     aria-hidden="true">
                     <div class="modal-dialog">
-                        <div class="modal-content">
+                        <div class="modal-content custom-modal">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="approveRejectModalLabel">Professional Approval/Rejection
                                 </h5>
@@ -433,11 +433,10 @@
                                 <p><b>Service:</b> <span id="professional_service"></span></p>
                                 <p><b>Address:</b> <span id="professional_address"></span></p>
                                 <p><b>Pincode:</b> <span id="professional_pincode"></span></p>
-                                <!-- <p><b>Verified Status:</b> <span id="professional_vstatus"></span></p> -->
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" class="btn btn-primary" id="action_button">Confirm</button>
+                                <button type="submit" class="btn btn-custom" id="action_button">Confirm</button>
                             </div>
                         </div>
                     </div>
@@ -480,8 +479,8 @@
             <!-- Customers Section -->
             <h4 style="text-decoration: underline;">Customers</h4>
             {% if customers %}
-            <table class="table table-bordered  table-hover">
-                <thead class="table-dark">
+            <table class="table table-bordered  table-hover table-custom">
+                <thead class="table-dark-custom">
                     <tr>
                         <th scope="col">ID</th>
                         <th scope="col">Name</th>
@@ -503,12 +502,12 @@
                         <td>
                             <form action="{{ url_for('block_customer', customer_id=customer.id) }}" method="POST"
                                 style="display:inline;" onsubmit="return confirmBlockCustomer();">
-                                <button type="submit" class="btn btn-danger">Block</button>
+                                <button type="submit" class="btn btn-danger-custom">Block</button>
                             </form>
                             <b>||</b>
                             <form action="{{ url_for('unblock_customer', customer_id=customer.id) }}" method="POST"
                                 style="display:inline;" onsubmit="return confirmUnBlockCustomer();">
-                                <button type="submit" class="btn btn-success">Unblock</button>
+                                <button type="submit" class="btn btn-success-custom">Unblock</button>
                             </form>
                         </td>
                     </tr>
@@ -522,8 +521,8 @@
             <!-- Service Requests Section -->
             <h4 style="text-decoration: underline;">Service Requests</h4>
             {% if service_requests %}
-            <table class="table table-bordered  table-hover">
-                <thead class="table-dark">
+            <table class="table table-bordered  table-hover table-custom">
+                <thead class="table-dark-custom">
                     <tr>
                         <th scope="col">Request ID</th>
                         <th scope="col">Customer ID</th>
@@ -553,6 +552,24 @@
             {% endif %}
         </div>
     </div>
+    <!-- Add Font Awesome CSS for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Footer -->
+    <footer class="text-center py-3">
+        <div class="container">
+            <p>&copy; 2024 A to Z Household Services. All rights reserved.</p>
+            <div class="social-icons">
+                <a href="https://www.linkedin.com/in/tushar-jalan-2k5/" target="_blank" class="me-3">
+                    <i class="fab fa-linkedin fa-lg"></i>
+                </a>
+                <a href="https://github.com/Tusharisme" target="_blank">
+                    <i class="fab fa-github fa-lg"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
 </body>
 
 </html>

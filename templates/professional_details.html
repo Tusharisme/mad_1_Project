@@ -20,49 +20,74 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"></script>
 
     <div id="container">
-        <div id="panel">
-            <h1>Professional Details</h1>
-            <br>
+        <button class="btn btn-secondary" onclick="goBack()"><-Back </button>
+                <script>
+                    function goBack() {
+                        window.history.back();
+                    }
+                </script>
+                <br>
+                <div id="panel">
+                    <h1 style="text-decoration: underline;">Professional Details</h1>
+                    <br>
 
-            <p><strong>Professional ID:</strong> {{ professional.id }} <br> <br>
-                <strong>Professional Name:</strong> {{ professional.name }}<br><br>
-                <strong>Professional Experience:</strong> {{ professional.experience }} years<br><br>
-                <strong>Service Name:</strong> {{ professional.service_type }}<br><br>
-                <strong>verified Status:</strong> {{ professional.verified_status }}<br><br>
-                <strong>Phone No.:</strong> {{ professional.phone_no }}<br><br>
-                <strong>Email:</strong> {{ professional.email }}<br><br>
-                <strong>Address:</strong> {{ professional.address }}<br><br>
-                <strong>PinCode:</strong> {{ professional.pin_code }}<br><br>
-                <strong>Average Rating:</strong>
-                {% if professional.average_rating %}
-                professional.average_rating
-                {% else %}
-                N/A
-                {% endif %}
-                <br><br>
-                <strong>Block Status:</strong>
-                {% if professional.block_status %}
-                Blocked
-                {% else %}
-                Not Blocked
-                {% endif %}
-                <br><br>
-                <!-- <strong>Action:</strong> {{ professional.time_required }} mins <br><br> -->
-                <strong>Uploaded Document:</strong>
-                {% if professional.document %}
-                <!-- Assuming the document is stored in '/uploads/' folder and accessible via static files -->
-                <a href="{{ url_for('static', filename='uploads/' + professional.document.split('/')[-1]) }}"
-                    target="_blank">
-                    View Document
-                </a>
-                {% else %}
-                No document uploaded.
-                {% endif %}
+                    <p><strong>Professional ID:</strong> {{ professional.id }} <br> <br>
+                        <strong>Professional Name:</strong> {{ professional.name }}<br><br>
+                        <strong>Professional Experience:</strong> {{ professional.experience }} years<br><br>
+                        <strong>Service Name:</strong> {{ professional.service_type }}<br><br>
+                        <strong>verified Status:</strong> {{ professional.verified_status }}<br><br>
+                        <strong>Phone No.:</strong> {{ professional.phone_no }}<br><br>
+                        <strong>Email:</strong> {{ professional.email }}<br><br>
+                        <strong>Address:</strong> {{ professional.address }}<br><br>
+                        <strong>PinCode:</strong> {{ professional.pin_code }}<br><br>
+                        <strong>Average Rating:</strong>
+                        {% if professional.average_rating %}
+                        professional.average_rating
+                        {% else %}
+                        N/A
+                        {% endif %}
+                        <br><br>
+                        <strong>Block Status:</strong>
+                        {% if professional.block_status %}
+                        Blocked
+                        {% else %}
+                        Not Blocked
+                        {% endif %}
+                        <br><br>
+                        <!-- <strong>Action:</strong> {{ professional.time_required }} mins <br><br> -->
+                        <strong>Uploaded Document:</strong>
+                        {% if professional.document %}
+                        <!-- Assuming the document is stored in '/uploads/' folder and accessible via static files -->
+                        <a href="{{ url_for('static', filename='uploads/' + professional.document.split('/')[-1]) }}"
+                            target="_blank">
+                            View Document
+                        </a>
+                        {% else %}
+                        No document uploaded.
+                        {% endif %}
 
-            </p>
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
-        </div>
+                    </p>
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+                </div>
     </div>
+    <!-- Add Font Awesome CSS for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Footer -->
+    <footer class="text-center py-3">
+        <div class="container">
+            <p>&copy; 2024 A to Z Household Services. All rights reserved.</p>
+            <div class="social-icons">
+                <a href="https://www.linkedin.com/in/tushar-jalan-2k5/" target="_blank" class="me-3">
+                    <i class="fab fa-linkedin fa-lg"></i>
+                </a>
+                <a href="https://github.com/Tusharisme" target="_blank">
+                    <i class="fab fa-github fa-lg"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
 </body>
 
 </html>

@@ -1052,7 +1052,7 @@ def search_service():
     elif search_type == "rating":
         category_message = f"Search results for rating '{rating}'"
     else:
-        category_message = "No search criteria provided."
+        category_message = ""
 
     return render_template(
         "services_by_category.html",
@@ -1579,7 +1579,7 @@ def customer_summary():
             Service_Request.service_status == "rejected",
         )
         .count(),
-        "closed": db.session.query(Service_Request)
+        "completed": db.session.query(Service_Request)
         .filter(
             Service_Request.customer_id == customer_id,
             Service_Request.service_status == "closed",
@@ -1646,7 +1646,7 @@ def customer_summary_api():
             Service_Request.service_status == "rejected",
         )
         .count(),
-        "closed": db.session.query(Service_Request)
+        "completed": db.session.query(Service_Request)
         .filter(
             Service_Request.customer_id == customer_id,
             Service_Request.service_status == "closed",
@@ -1774,17 +1774,20 @@ def update_professional_services():
             custom_time_required = request.form.get(f"custom_time_{service.service_id}")
             base_price = service.service.base_price
 
-
             if custom_price:
-                service.custom_price = (custom_price)
+                service.custom_price = custom_price
             if custom_description:
                 service.custom_description = custom_description
             if custom_time_required:
                 service.custom_time_required = custom_time_required
             if custom_price < str(base_price):
-                flash("You cannot enter a custom price less than the base price.", "danger")
-                return redirect(url_for('professional_profile'))  # Redirect back to the profile
-
+                flash(
+                    "You cannot enter a custom price less than the base price.",
+                    "danger",
+                )
+                return redirect(
+                    url_for("professional_profile")
+                )  # Redirect back to the profile
 
         db.session.commit()
         flash("Services updated successfully!", "success")

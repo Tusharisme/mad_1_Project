@@ -5,17 +5,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Customer Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css" />
 </head>
 
 <body>
     <div id="container">
         <div id="panel">
-            <nav class="navbar navbar-expand-lg navbar-light mb-4  mb-4">
+            <nav
+                class="navbar navbar-expand-lg navbar-light  mb-4 sticky-top navbar-custom   mb-4 sticky-top navbar-custom">
                 <div class=" container-fluid">
                     <label class="navbar-brand">Welcome {{ customer }}</label>
 
@@ -108,7 +109,8 @@
             {% endif %}
 
             <!-- Service Categories -->
-            <h4 class="mt-4">Service Categories</h4>
+            <h4 class="mt-4" style="text-decoration: underline;">Service Categories</h4>
+            <br>
             <div class="row">
                 {% for service in services %}
                 <div class="col-md-3 mb-4">
@@ -144,11 +146,11 @@
             {% endwith %}
 
             <!-- Service History Table -->
-            <h4 class="mt-4">Service History</h4>
+            <h4 class="mt-4" style="text-decoration: underline;">Service History</h4>
             <br>
             {% if service_requests %}
-            <table class="table table-bordered ">
-                <thead class="table-dark">
+            <table class="table table-bordered  table-hover table-custom">
+                <thead class="table-dark-custom">
                     <tr>
                         <th>ID</th>
                         <th>Service Name</th>
@@ -173,13 +175,14 @@
                             <!-- Cancel Button -->
                             <form action="{{ url_for('cancel_service', service_id=request.id) }}" method="POST"
                                 style="display:inline-block;">
-                                <button type="button" class="btn btn-danger btn-sm" onclick="confirmCancel(this)">
+                                <button type="button" class="btn btn-danger-custom btn-sm"
+                                    onclick="confirmCancel(this)">
                                     Cancel Service
                                 </button>
                             </form>
                             {% elif request.service_status == 'closed' and not request.rating %}
                             <!-- Review Button (after service is closed) -->
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                            <button class="btn btn-custom btn-sm" data-bs-toggle="modal"
                                 data-bs-target="#closeServiceModal" data-id="{{ request.id }}"
                                 data-service-name="{{ request.service.name }}"
                                 data-professional-name="{{ request.professional.name }}"
@@ -192,7 +195,7 @@
                             <div class="modal fade" id="closeServiceModal" tabindex="-1" role="dialog"
                                 aria-labelledby="closeServiceModalLabel" aria-hidden="true">
                                 <div class="modal-dialog" role="document">
-                                    <div class="modal-content">
+                                    <div class="modal-content custom-modal">
                                         <div class="modal-header">
                                             <h5 class="modal-title" id="closeServiceModalLabel">Close Service Request
                                             </h5>
@@ -222,7 +225,7 @@
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-secondary"
                                                 data-bs-dismiss="modal">Close</button>
-                                            <button type="button" class="btn btn-primary"
+                                            <button type="button" class="btn btn-custom"
                                                 id="submitCloseService">Submit</button>
                                         </div>
                                     </div>
@@ -289,7 +292,7 @@
                 </tbody>
             </table>
             {% else %}
-            <p>No service History Available ! </p>
+            <p> <b>No service History Available ! </b></p>
             {% endif %}
 
             <!-- JavaScript to Show Confirmation Before Cancel -->
@@ -302,6 +305,24 @@
             </script>
         </div>
     </div>
+    <!-- Add Font Awesome CSS for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Footer -->
+    <footer class="text-center py-3">
+        <div class="container">
+            <p>&copy; 2024 A to Z Household Services. All rights reserved.</p>
+            <div class="social-icons">
+                <a href="https://www.linkedin.com/in/tushar-jalan-2k5/" target="_blank" class="me-3">
+                    <i class="fab fa-linkedin fa-lg"></i>
+                </a>
+                <a href="https://github.com/Tusharisme" target="_blank">
+                    <i class="fab fa-github fa-lg"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
 </body>
 
 </html>
