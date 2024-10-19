@@ -23,6 +23,43 @@
                 <br>
                 <h3 style="text-decoration: underline;">{{ category }}</h3>
                 <br>
+                <!-- JavaScript to Show Confirmation Before Delete -->
+                <script>
+                    function confirmCancel() {
+                        return confirm("Are you sure you want to delete this service?");
+                    }
+                </script>
+                <!-- JavaScript to Show Confirmation Before Delete -->
+                <script>
+                    function confirmDeleteProfessional() {
+                        return confirm("Are you sure you want to delete this Professional?");
+                    }
+                </script>
+                <!-- JavaScript to Show Confirmation Before block a professional -->
+                <script>
+                    function confirmBlockProfessional() {
+                        return confirm("Are you sure you want to block this Professional?");
+                    }
+                </script>
+                <!-- JavaScript to Show Confirmation Before block a professional -->
+                <script>
+                    function confirmUnBlockProfessional() {
+                        return confirm("Are you sure you want to unblock this Professional?");
+                    }
+                </script>
+                <!-- JavaScript to Show Confirmation Before block a professional -->
+                <script>
+                    function confirmBlockCustomer() {
+                        return confirm("Are you sure you want to block this Customer?");
+                    }
+                </script>
+                <!-- JavaScript to Show Confirmation Before block a professional -->
+                <script>
+                    function confirmUnBlockCustomer() {
+                        return confirm("Are you sure you want to unblock this Customer?");
+                    }
+                </script>
+
                 <div class="row">
                     {% if results %}
 
@@ -50,7 +87,7 @@
 
                                 <!-- Delete Button: Higher priority with z-index -->
                                 <form action="{{ url_for('delete_service', service_id=service.id) }}" method="POST"
-                                    style="display:inline;">
+                                    style="display:inline;" onsubmit="return confirmCancel();">
                                     <button type="submit" class="btn btn-danger-custom position-relative"
                                         style="z-index: 10;">Delete</button>
                                 </form>
@@ -58,7 +95,6 @@
                         </div>
                     </div>
                     {% endfor %}
-
                     {% elif entity == "professional" %}
                     {% for professional in results %}
                     <div class="col-md-4">
@@ -66,19 +102,20 @@
                             <div class="card-body">
                                 <h5 class="card-title">Name: {{ professional.name }}</h5>
                                 <p class="card-text">Experience: {{ professional.experience }} years</p>
-                                <p class="card-text">Verified Status: {{ professional.verified_status }} </p>
+                                <p class="card-text">Verified Status: {{ professional.verified_status }}</p>
                                 <p class="card-text">Blocked Status: {{ 'Not blocked' if professional.block_status ==
-                                    False else
-                                    'Blocked' }}</p>
+                                    False else 'Blocked' }}</p>
                                 <p class="card-text">Rating: {{ professional.average_rating if
-                                    professional.average_rating is
-                                    not none else 'N/A' }}</p>
+                                    professional.average_rating is not none else 'N/A' }}</p>
 
                                 <!-- Stretched Link for professional details -->
                                 <a href="{{ url_for('professional_details', professional_id=professional.id) }}"
-                                    class="stretched-link " style="z-index: -1;"></a>
-                                <!-- Approve/Reject Buttons -->
-                                <div class="d-flex position-relative">
+                                    class="stretched-link"></a>
+                            </div>
+
+                            <!-- Buttons placed in the footer to avoid overlap with stretched link -->
+                            <div class="card-footer bg-transparent border-top-0 position-relative" style="z-index: 1;">
+                                <div class="d-flex">
                                     {% if professional.verified_status == "approved" %}
                                     <form method="POST"
                                         action="{{ url_for('block_professional', professional_id=professional.id) }}"
@@ -100,7 +137,7 @@
                                         <button type="submit" class="btn btn-danger-custom"
                                             style="z-index: 3;">Delete</button>
                                     </form>
-                                    {%else%}
+                                    {% else %}
                                     <button type="button" class="btn btn-success-custom" data-bs-toggle="modal"
                                         data-bs-target="#approveRejectModal" data-id="{{ professional.id }}"
                                         data-action="approve" style="z-index: 3;">
@@ -153,10 +190,13 @@
                                 <p class="card-text">Email: {{ customer.email }}</p>
                                 <p class="card-text">Phone: {{ customer.phone_no }}</p>
 
-                                <!-- Stretched Link for customer details -->
+                                <!-- Stretched Link for customer details, but not covering the button area -->
                                 <a href="{{ url_for('customer_details', customer_id=customer.id) }}"
                                     class="stretched-link"></a>
+                            </div>
 
+                            <!-- Buttons placed outside the card-body to prevent overlap with the stretched link -->
+                            <div class="card-footer bg-transparent border-top-0 position-relative" style="z-index: 1;">
                                 <form action="{{ url_for('block_customer', customer_id=customer.id) }}" method="POST"
                                     style="display:inline;" onsubmit="return confirmBlockCustomer();">
                                     <button type="submit" class="btn btn-danger-custom">Block</button>
@@ -166,7 +206,6 @@
                                     style="display:inline;" onsubmit="return confirmUnBlockCustomer();">
                                     <button type="submit" class="btn btn-success-custom">Unblock</button>
                                 </form>
-
                             </div>
                         </div>
                     </div>
@@ -183,7 +222,7 @@
                     {% endif %}
                 </div>
                 <!-- Modal for editing a service -->
-                <form id="editServiceForm" action="" method="POST">
+                <form id="editServiceForm" action="" method="POST" enctype="multipart/form-data">
                     <div class="modal fade" id="editServiceModal" tabindex="-1" aria-labelledby="editServiceModalLabel"
                         aria-hidden="true">
                         <div class="modal-dialog">
@@ -197,15 +236,29 @@
                                     <label for="edit_service_name" class="form-label"><b>Service Name</b></label>
                                     <input type="text" class="form-control" name="service_name"
                                         id="edit_service_name" />
+
                                     <label for="edit_description" class="form-label"><b>Description</b></label>
                                     <input type="text" name="description" class="form-control" id="edit_description" />
+
                                     <label for="edit_base_price" class="form-label"><b>Base Price</b></label>
                                     <input type="text" class="form-control" name="base_price" id="edit_base_price" />
-                                    <label for="edit_base_time_required" class="form-label"><b>Base Time
-                                            Required (hours)</b></label>
+
+                                    <label for="edit_base_time_required" class="form-label"><b>Base Time Required
+                                            (hours)</b></label>
                                     <input type="text" class="form-control" name="base_time_required"
                                         id="edit_base_time_required" />
 
+                                    <!-- File input for editing service picture -->
+                                    <label for="edit_service_pic" class="form-label"><b>Service Picture</b></label>
+                                    <input type="file" class="form-control" name="service_pic" accept="image/*"
+                                        id="edit_service_pic" />
+
+                                    <!-- Display current service picture (optional) -->
+                                    <div id="current_service_pic_container">
+                                        <p>Current Picture:</p>
+                                        <img src="" alt="Service Picture" id="current_service_pic" width="150"
+                                            height="150" />
+                                    </div>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary"
@@ -218,7 +271,6 @@
                 </form>
 
                 <script>
-
                     // Get modal element
                     var editServiceModal = document.getElementById('editServiceModal');
 
@@ -233,6 +285,7 @@
                         var serviceDescription = button.getAttribute('data-description');
                         var servicePrice = button.getAttribute('data-price');
                         var serviceTime = button.getAttribute('data-time');
+                        var servicePic = button.getAttribute('data-pic'); // For the current service picture
 
                         // Update the form action to include the service ID
                         var form = document.getElementById('editServiceForm');
@@ -242,7 +295,16 @@
                         document.getElementById('edit_service_name').value = serviceName;
                         document.getElementById('edit_description').value = serviceDescription;
                         document.getElementById('edit_base_price').value = servicePrice;
-                        document.getElementById('edit_base_time_required').value = serviceTime; // Update to the new ID
+                        document.getElementById('edit_base_time_required').value = serviceTime;
+
+                        // If there is a service picture, update the image element
+                        var currentPicContainer = document.getElementById('current_service_pic_container');
+                        if (servicePic) {
+                            document.getElementById('current_service_pic').src = servicePic;
+                            currentPicContainer.style.display = 'block'; // Show the current picture section
+                        } else {
+                            currentPicContainer.style.display = 'none'; // Hide if no picture is available
+                        }
                     });
                 </script>
 

@@ -355,6 +355,8 @@
                     <tr>
                         <th scope="col">ID</th>
                         <th scope="col">Name</th>
+                        <th scope="col">Verified Status</th>
+                        <th scope="col">Blocked Status</th>
                         <th scope="col">Experience (Years)</th>
                         <th scope="col">Average Rating</th> <!-- Added Average Rating Column -->
                         <th scope="col">Action</th>
@@ -366,6 +368,12 @@
                         <td><a href="{{ url_for('professional_details', professional_id=professional.id) }}">{{
                                 professional.id }}</a></td>
                         <td>{{ professional.name }}</td>
+                        <td>{{ professional.verified_status }}</td>
+                        <td>{% if professional.block_status %}
+                            Blocked
+                            {% else %}
+                            Not Blocked
+                            {% endif %}</td>
                         <td>{{ professional.experience }}</td>
                         <td>{{ professional.average_rating or 'N/A' }}</td> <!-- Display Average Rating -->
                         <td>
@@ -486,6 +494,7 @@
                         <th scope="col">Name</th>
                         <th scope="col">Email</th>
                         <th scope="col">Phone</th>
+                        <th scope="col">Blocked Status</th>
                         <th scope="col">Average Rating</th> <!-- Added Average Rating Column -->
                         <th scope="col">Action</th>
                     </tr>
@@ -498,6 +507,11 @@
                         <td>{{ customer.name }}</td>
                         <td>{{ customer.email }}</td>
                         <td>{{ customer.phone_no }}</td>
+                        <td>{% if customer.block_status %}
+                            Blocked
+                            {% else %}
+                            Not Blocked
+                            {% endif %}</td>
                         <td>{{ customer.average_rating or 'N/A' }}</td> <!-- Display Average Rating -->
                         <td>
                             <form action="{{ url_for('block_customer', customer_id=customer.id) }}" method="POST"
