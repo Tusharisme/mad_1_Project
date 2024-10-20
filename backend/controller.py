@@ -78,6 +78,172 @@ def user_login():
     return render_template("login.html", msg="")
 
 
+@app.route("/signup", methods=["GET", "POST"])
+def user_signup():
+    if request.method == "POST":
+        uname = request.form.get("uname")
+        password = request.form.get("pwd")
+        fullname = request.form.get("full_name")
+        email = request.form.get("email")
+        address = request.form.get("address")
+        pin_code = request.form.get("pin_code")
+        phone_no = request.form.get("phone_no")
+        gender = request.form.get("gender")  # Get the gender from the form
+
+        # Assign profile picture based on the selected gender
+        if gender == "Male":
+            profile_pic = "/static/images/male.png"  # Path to male profile picture
+        elif gender == "Female":
+            profile_pic = "/static/images/female.jpg"  # Path to female profile picture
+        else:
+            profile_pic = (
+                "/static/images/default.jpg"  # Fallback in case gender is not specified
+            )
+
+        existing_user = (
+            db.session.query(Customer.email)
+            .filter_by(email=email)
+            .union(db.session.query(Service_Professional.email).filter_by(email=email))
+            .first()
+        )
+
+        if existing_user:
+            flash("Email already registered. Please log in.", "danger")
+            return redirect(url_for("user_login"))
+
+        # Check if it's the first customer
+        first_customer = Customer.query.first()
+        if first_customer is None:  # No customers exist, make the new user an admin
+            role = 0  # Admin role
+        else:
+            role = 1  # Customer role
+
+        # Create the new user
+        new_usr = Customer(
+            username=uname,
+            password=password,
+            name=fullname,
+            email=email,
+            address=address,
+            pin_code=pin_code,
+            phone_no=phone_no,
+            role=role,
+            gender=gender,  # Save the gender to the database
+            profile_pic=profile_pic,  # Save the profile picture path to the database
+        )
+
+        db.session.add(new_usr)
+        db.session.commit()
+        # Create a wallet for the new customer
+        if role == 1:
+            new_wallet = Wallet(customer_id=new_usr.id, balance=0.0)
+            db.session.add(new_wallet)
+            db.session.commit()
+
+        return redirect(url_for("user_login"))
+
+    return render_template("signup.html")
+
+
+@app.route("/register", methods=["GET", "POST"])  # for the professional
+def prof_register():
+    if request.method == "POST":
+        uname = request.form.get("uname")
+        password = request.form.get("pwd")
+        fullname = request.form.get("full_name")
+        email = request.form.get("email")
+        phone_no = request.form.get("phone_no")
+        experience = request.form.get("experience")
+        formFileSm = request.files.get(
+            "document"
+        )  # Correcting the formFileSm to document
+        address = request.form.get("address")
+        pin_code = request.form.get("pin_code")
+        service_type = request.form.get(
+            "service_type"
+        )  # Capturing service type directly
+        gender = request.form.get("gender")  # Get the gender from the form
+
+        # Assign profile picture based on the selected gender
+        if gender == "Male":
+            profile_pic = "/static/images/male.png"  # Path to male profile picture
+        elif gender == "Female":
+            profile_pic = "/static/images/female.jpg"  # Path to female profile picture
+        else:
+            profile_pic = (
+                "/static/images/default.jpg"  # Fallback in case gender is not specified
+            )
+        # Use `or_` to check if the email exists in either Customer or Service_Professional
+        existing_user = (
+            db.session.query(Customer.email)
+            .filter_by(email=email)
+            .union(db.session.query(Service_Professional.email).filter_by(email=email))
+            .first()
+        )
+
+        if existing_user:
+            flash("Email already registered. Please log in.", "danger")
+            return redirect(url_for("user_login"))
+
+        if not existing_user:
+            # If file is uploaded, save it to a specific folder (adjust paths as necessary)
+            document_path = None
+            if formFileSm:
+                document_path = save_document(
+                    formFileSm
+                )  # Assuming save_document handles saving
+
+            # Create a new service professional
+            new_usr = Service_Professional(
+                username=uname,
+                password=password,
+                name=fullname,
+                email=email,
+                address=address,
+                experience=experience,
+                document=document_path,  # Saving the file path
+                pin_code=pin_code,
+                phone_no=phone_no,
+                service_type=service_type,  # Saving the service type
+                gender=gender,  # Save the gender to the database
+                profile_pic=profile_pic,  # Save the profile picture path to the database
+            )
+
+            # Fetch the selected service by name from the form
+            service = Service.query.filter_by(name=service_type).first()
+            if service:
+                # Create a new ProfessionalService entry to link the professional and the service
+                professional_service = ProfessionalService(
+                    professional=new_usr,
+                    service=service,
+                    custom_price=None,  # You can add custom price and other fields here if needed
+                    custom_description=None,
+                )
+
+                # Add the new professional and their service association to the database
+                db.session.add(new_usr)
+                db.session.add(professional_service)
+                db.session.commit()
+
+            # Redirect to login page after successful registration
+            return render_template("login.html")
+
+        else:
+            # If the professional already exists, render their dashboard
+            return render_template(
+                "professional_dashboard.html", professional=existing_user.username
+            )
+
+    # On GET request, render the service professional signup form
+    available_services = (
+        Service.query.all()
+    )  # Fetch the available services to populate the form
+    return render_template("service_prof.html", available_services=available_services)
+
+
+# =========================================  Admin  ========================================================
+
+
 @app.route("/admin_dashboard")
 def admin_dashboard():
     if (
@@ -129,17 +295,6 @@ def admin_dashboard():
         )
     else:
         return redirect(url_for("user_login"))  # Redirect to login if not an admin
-
-
-@app.route("/customer/<int:customer_id>", methods=["GET"])
-def customer_details(customer_id):
-    # Your logic to display customer details
-    customer = Customer.query.get(customer_id)
-    if customer:
-        return render_template("customer_details.html", customer=customer)
-    else:
-        flash("Customer not found.", "danger")
-        return redirect(url_for("admin_dashboard"))
 
 
 @app.route("/admin/summary", methods=["GET"])
@@ -270,467 +425,417 @@ def search_admin():
     )
 
 
-def fetch_customer_ratings():
-    ratings_count = {
-        "1 Star": 0,
-        "2 Stars": 0,
-        "3 Stars": 0,
-        "4 Stars": 0,
-        "5 Stars": 0,
-    }
-
-    # Fetch service requests with ratings
-    service_requests = Service_Request.query.with_entities(Service_Request.rating).all()
-
-    for request in service_requests:
-        rating = request.rating
-        if rating is not None and 1 <= rating <= 5:
-            ratings_count[f"{rating} Star" if rating == 1 else f"{rating} Stars"] += 1
-
-    return {
-        "labels": list(ratings_count.keys()),
-        "data": list(ratings_count.values()),
-    }
-
-
-def fetch_service_request_summary():
-    # Updated status categories with initial counts
-    status_count = {
-        "accepted": 0,
-        "Closed": 0,  # Adding Closed
-        "Rejected": 0,  # Adding Rejected
-    }
-
-    # Fetch the service_status values from the database
-    service_requests = Service_Request.query.with_entities(
-        Service_Request.service_status
-    ).all()
-
-    for request in service_requests:
-        status = (
-            request.service_status.strip().capitalize()
-        )  # Clean and standardize the status
-        if status in status_count:
-            status_count[status] += 1
-        # else:
-        #     print(f"Unknown status encountered: {status}")  # Log for debugging
-
-    return {
-        "labels": list(status_count.keys()),
-        "data": list(status_count.values()),
-    }
-
-
-@app.route("/signup", methods=["GET", "POST"])
-def user_signup():
-    if request.method == "POST":
-        uname = request.form.get("uname")
-        password = request.form.get("pwd")
-        fullname = request.form.get("full_name")
-        email = request.form.get("email")
-        address = request.form.get("address")
-        pin_code = request.form.get("pin_code")
-        phone_no = request.form.get("phone_no")
-        gender = request.form.get("gender")  # Get the gender from the form
-
-        # Assign profile picture based on the selected gender
-        if gender == "Male":
-            profile_pic = "/static/images/male.png"  # Path to male profile picture
-        elif gender == "Female":
-            profile_pic = "/static/images/female.jpg"  # Path to female profile picture
-        else:
-            profile_pic = (
-                "/static/images/default.jpg"  # Fallback in case gender is not specified
-            )
-
-        existing_user = (
-            db.session.query(Customer.email)
-            .filter_by(email=email)
-            .union(db.session.query(Service_Professional.email).filter_by(email=email))
-            .first()
-        )
-
-        if existing_user:
-            flash("Email already registered. Please log in.", "danger")
-            return redirect(url_for("user_login"))
-
-        # Check if it's the first customer
-        first_customer = Customer.query.first()
-        if first_customer is None:  # No customers exist, make the new user an admin
-            role = 0  # Admin role
-        else:
-            role = 1  # Customer role
-
-        # Create the new user
-        new_usr = Customer(
-            username=uname,
-            password=password,
-            name=fullname,
-            email=email,
-            address=address,
-            pin_code=pin_code,
-            phone_no=phone_no,
-            role=role,
-            gender=gender,  # Save the gender to the database
-            profile_pic=profile_pic,  # Save the profile picture path to the database
-        )
-
-        db.session.add(new_usr)
-        db.session.commit()
-        # Create a wallet for the new customer
-        if role == 1:
-            new_wallet = Wallet(customer_id=new_usr.id, balance=0.0)
-            db.session.add(new_wallet)
-            db.session.commit()
-
-        return redirect(url_for("user_login"))
-
-    return render_template("signup.html")
-
-
-def save_customer_pic(file):
-    # Get the filename and ensure it's secure
-    filename = secure_filename(file.filename)
-
-    # Get the full path where the file will be saved
-    upload_folder = current_app.config["CUSTOMER_PIC_FOLDER"]
-    file_path = os.path.join(upload_folder, filename)
-
-    # Ensure that the customer_pic directory exists
-    if not os.path.exists(upload_folder):
-        os.makedirs(upload_folder)
-
-    # Save the file
-    file.save(file_path)
-
-    return filename  # Return just the filename for storing in the database
-
-
-def save_professional_pic(file):
-    # Get the filename and ensure it's secure
-    filename = secure_filename(file.filename)
-
-    # Get the full path where the file will be saved
-    upload_folder = current_app.config["PROFESSIONAL_PIC_FOLDER"]
-    file_path = os.path.join(upload_folder, filename)
-
-    # Ensure that the professional_pic directory exists
-    if not os.path.exists(upload_folder):
-        os.makedirs(upload_folder)
-
-    # Save the file
-    file.save(file_path)
-
-    return filename  # Return just the filename for storing in the database
-
-
-def save_document(file):
-    # Get the filename and ensure it's secure
-    filename = secure_filename(file.filename)
-
-    # Get the full path where the file will be saved
-    upload_folder = current_app.config["UPLOAD_FOLDER"]
-    file_path = os.path.join(upload_folder, filename)
-
-    # Ensure that the uploads directory exists
-    if not os.path.exists(upload_folder):
-        os.makedirs(upload_folder)
-
-    # Save the file
-    file.save(file_path)
-
-    return filename  # Return just the filename for storing in the database
-
-
-@app.route("/register", methods=["GET", "POST"])  # for the professional
-def prof_register():
-    if request.method == "POST":
-        uname = request.form.get("uname")
-        password = request.form.get("pwd")
-        fullname = request.form.get("full_name")
-        email = request.form.get("email")
-        phone_no = request.form.get("phone_no")
-        experience = request.form.get("experience")
-        formFileSm = request.files.get(
-            "document"
-        )  # Correcting the formFileSm to document
-        address = request.form.get("address")
-        pin_code = request.form.get("pin_code")
-        service_type = request.form.get(
-            "service_type"
-        )  # Capturing service type directly
-        gender = request.form.get("gender")  # Get the gender from the form
-
-        # Assign profile picture based on the selected gender
-        if gender == "Male":
-            profile_pic = "/static/images/male.png"  # Path to male profile picture
-        elif gender == "Female":
-            profile_pic = "/static/images/female.jpg"  # Path to female profile picture
-        else:
-            profile_pic = (
-                "/static/images/default.jpg"  # Fallback in case gender is not specified
-            )
-        # Use `or_` to check if the email exists in either Customer or Service_Professional
-        existing_user = (
-            db.session.query(Customer.email)
-            .filter_by(email=email)
-            .union(db.session.query(Service_Professional.email).filter_by(email=email))
-            .first()
-        )
-
-        if existing_user:
-            flash("Email already registered. Please log in.", "danger")
-            return redirect(url_for("user_login"))
-
-        if not existing_user:
-            # If file is uploaded, save it to a specific folder (adjust paths as necessary)
-            document_path = None
-            if formFileSm:
-                document_path = save_document(
-                    formFileSm
-                )  # Assuming save_document handles saving
-
-            # Create a new service professional
-            new_usr = Service_Professional(
-                username=uname,
-                password=password,
-                name=fullname,
-                email=email,
-                address=address,
-                experience=experience,
-                document=document_path,  # Saving the file path
-                pin_code=pin_code,
-                phone_no=phone_no,
-                service_type=service_type,  # Saving the service type
-                gender=gender,  # Save the gender to the database
-                profile_pic=profile_pic,  # Save the profile picture path to the database
-            )
-
-            # Fetch the selected service by name from the form
-            service = Service.query.filter_by(name=service_type).first()
-            if service:
-                # Create a new ProfessionalService entry to link the professional and the service
-                professional_service = ProfessionalService(
-                    professional=new_usr,
-                    service=service,
-                    custom_price=None,  # You can add custom price and other fields here if needed
-                    custom_description=None,
-                )
-
-                # Add the new professional and their service association to the database
-                db.session.add(new_usr)
-                db.session.add(professional_service)
-                db.session.commit()
-
-            # Redirect to login page after successful registration
-            return render_template("login.html")
-
-        else:
-            # If the professional already exists, render their dashboard
-            return render_template(
-                "professional_dashboard.html", professional=existing_user.username
-            )
-
-    # On GET request, render the service professional signup form
-    available_services = (
-        Service.query.all()
-    )  # Fetch the available services to populate the form
-    return render_template("service_prof.html", available_services=available_services)
-
-
-@app.route("/services/add", methods=["GET", "POST"])
-def add_service():
-    if request.method == "POST":
-        service_name = request.form.get("service_name")
-        description = request.form.get("description")
-        base_price = request.form.get("base_price")
-        base_time_required = request.form.get("base_time_required")
-
-        # Handle the service picture upload
-        service_pic = None
-        if "service_pic" in request.files:
-            file = request.files["service_pic"]
-            if file and file.filename:  # Ensure a file is uploaded
-                service_pic = save_service_picture(file)
-
-        # Create and add new service
-        new_service = Service(
-            name=service_name,
-            description=description,
-            base_price=base_price,
-            base_time_required=base_time_required,
-            service_pic=(
-                f"/static/service_pics/{service_pic}" if service_pic else None
-            ),  # Store service picture path
-        )
-        db.session.add(new_service)
-        db.session.commit()
-
-        flash("Service added successfully!", "success")  # Flash message for feedback
-
-        # Redirect to the admin dashboard after adding the service
+@app.route("/customer/<int:customer_id>", methods=["GET"])
+def customer_details(customer_id):
+    # Your logic to display customer details
+    customer = Customer.query.get(customer_id)
+    if customer:
+        return render_template("customer_details.html", customer=customer)
+    else:
+        flash("Customer not found.", "danger")
         return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/services/edit/<int:service_id>", methods=["POST"])
-def edit_service(service_id):
-    service = Service.query.get_or_404(service_id)
-
-    service.name = request.form.get("service_name")
-    service.description = request.form.get("description")
-    service.base_price = request.form.get("base_price")
-    service.base_time_required = request.form.get("base_time_required")
-
-    # Handle the service picture upload
-    if "service_pic" in request.files:
-        file = request.files["service_pic"]
-        if file and file.filename:  # Check if a file was uploaded
-            filename = save_service_picture(file)  # Save the file and get the filename
-            service.service_pic = (
-                f"/static/service_pics/{filename}"  # Update the picture path
-            )
-
+@app.route("/block_customer/<int:customer_id>", methods=["POST"])
+def block_customer(customer_id):
+    customer = Customer.query.get_or_404(customer_id)
+    customer.is_blocked = True  # Set the is_blocked field to True
     db.session.commit()
-    flash("Service updated successfully!", "success")
+    flash("Customer has been blocked successfully.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
-# def save_service_picture(file):
-#     filename = secure_filename(file.filename)
-#     file_path = os.path.join(app.config["SERVICE_PIC_FOLDER"], filename)
-#     file.save(file_path)  # Save the file to the folder
-#     return filename  # Return the file name
+@app.route("/unblock_customer/<int:customer_id>", methods=["POST"])
+def unblock_customer(customer_id):
+    customer = Customer.query.get_or_404(customer_id)
+    customer.is_blocked = False  # Set the is_blocked field to False
+    db.session.commit()
+    flash("Customer has been Unblocked successfully.", "success")
+    return redirect(url_for("admin_dashboard"))
 
 
-def save_service_picture(file):
-    # Get the filename and ensure it's secure
-    filename = secure_filename(file.filename)
-
-    # Get the full path where the file will be saved
-    upload_folder = current_app.config["SERVICE_PIC_FOLDER"]
-    file_path = os.path.join(upload_folder, filename)
-
-    # Ensure that the professional_pic directory exists
-    if not os.path.exists(upload_folder):
-        os.makedirs(upload_folder)
-
-    # Save the file
-    file.save(file_path)
-
-    return filename  # Return just the filename for storing in the database
+@app.route("/professional/block/<int:professional_id>", methods=["POST"])
+def block_professional(professional_id):
+    professional = Service_Professional.query.get(professional_id)
+    if professional:
+        professional.block_status = True  # Set the block status to True
+        db.session.commit()
+        flash("Professional has been blocked successfully.", "success")
+    else:
+        flash("Professional not found.", "danger")
+    return redirect(url_for("admin_dashboard"))  # Redirect back to the admin dashboard
 
 
-@app.route("/services/delete/<int:service_id>", methods=["POST"])
-def delete_service(service_id):
-    service = Service.query.get(service_id)
+@app.route("/professional/unblock/<int:professional_id>", methods=["POST"])
+def unblock_professional(professional_id):
+    professional = Service_Professional.query.get(professional_id)
+    if professional:
+        professional.block_status = False  # Set the block status to False
+        db.session.commit()
+        flash("Professional has been unblocked successfully.", "success")
+    else:
+        flash("Professional not found.", "danger")
+    return redirect(url_for("admin_dashboard"))  # Redirect back to the admin dashboard
 
-    if service:
-        db.session.delete(service)
+
+# ============================================  Professional Routes  ============================================
+
+
+@app.route("/professional_dashboard")
+def professional_dashboard():
+    if "professional_id" in session:  # Check if professional is logged in
+        professional_id = session["professional_id"]
+        professional = Service_Professional.query.get(professional_id)
+
+        # Initialize the message variable
+        message = None
+
+        if professional:
+            # Check the professional's verification and block status
+            if professional.verified_status is None:
+                message = "Your admin verification is under process."
+            elif professional.verified_status == "approved":
+                service_requests = Service_Request.query.filter_by(
+                    professional_id=professional_id
+                ).all()
+                # Check if there are any service requests
+                if not any(
+                    req.service_status in ["requested", "accepted"]
+                    for req in service_requests
+                ):
+                    flash(
+                        "Your application has been approved. Please wait for service Requests.",
+                        "success",
+                    )
+            elif professional.verified_status == "rejected":
+                message = "Your application has been rejected. Please change your profile info."
+            elif professional.block_status:
+                message = "You have been blocked by admin and cannot book any services."
+
+        # Fetching service requests specific to the logged-in professional
+        service_requests = (
+            Service_Request.query.options(
+                joinedload(
+                    Service_Request.professional
+                )  # Eager load the professional relationship
+            )
+            .filter_by(professional_id=professional_id)
+            .all()
+        )
+
+        # Fetch unique pin codes based on customers from the service requests
+        pin_codes = (
+            db.session.query(Customer.pin_code)
+            .join(Service_Request)
+            .filter(Service_Request.professional_id == professional_id)
+            .distinct()
+            .all()
+        )
+        pin_codes = [pin[0] for pin in pin_codes]  # Extracting pin codes from tuples
+
+        # Fetch today's services, including both requested and accepted services
+        today_services = [
+            req
+            for req in service_requests
+            if req.service_status in ["requested", "accepted"]
+        ]
+        closed_services = [
+            req for req in service_requests if req.service_status == "closed"
+        ]
+
+        return render_template(
+            "professional_dashboard.html",
+            today_services=today_services,
+            closed_services=closed_services,
+            message=message,  # This will always have a value
+            pin_codes=pin_codes,
+            professional=session["username"],
+        )
+
+    return redirect(url_for("user_login"))  # Redirect if not logged in
+
+
+@app.route("/search_customers", methods=["GET"])
+def search_customers():
+    entity = request.args.get("entity")
+    pin_code = request.args.get("pin_code")
+    customer_name = request.args.get("customer_name")
+    date_of_service = request.args.get("date_of_service")
+    date_of_closing = request.args.get("date_of_closing")
+    # query = request.args.get("query")
+
+    service_requests_query = Service_Request.query.filter(
+        Service_Request.professional_id == session["professional_id"]
+    )
+
+    # Filter by entity type
+    if entity == "pin_code" and pin_code:
+        service_requests_query = service_requests_query.filter(
+            Service_Request.customer.has(pin_code=pin_code)
+        )
+
+    elif entity == "customer_name" and customer_name:
+        service_requests_query = service_requests_query.filter(
+            Service_Request.customer.has(Customer.name.ilike(f"%{customer_name}%"))
+        )
+
+    elif entity == "date_of_service" and date_of_service:
+        try:
+            date_of_service_obj = datetime.strptime(date_of_service, "%Y-%m-%d")
+            service_requests_query = service_requests_query.filter(
+                Service_Request.date_of_request == date_of_service_obj
+            )
+        except ValueError:
+            print("Invalid date format for date of service. Please use YYYY-MM-DD.")
+
+    elif entity == "date_of_closing" and date_of_closing:
+        try:
+            date_of_closing_obj = datetime.strptime(date_of_closing, "%Y-%m-%d")
+            service_requests_query = service_requests_query.filter(
+                Service_Request.date_of_completion >= date_of_closing_obj,
+                Service_Request.date_of_completion
+                < date_of_closing_obj.replace(hour=23, minute=59, second=59),
+            )
+        except ValueError:
+            print("Invalid date format for closing date. Please use YYYY-MM-DD.")
+
+    # Fetch the matching service requests
+    service_requests = service_requests_query.all()
+
+    # Initialize a set to collect unique customers
+    matching_customers = set()
+
+    for service_request in service_requests:
+        matching_customers.add(
+            service_request.customer
+        )  # Use a set to avoid duplicates
+
+    return render_template(
+        "matching_customers.html",
+        customers=list(matching_customers),
+        category="Matching Customers",
+    )
+
+
+@app.route("/accept_service/<int:service_request_id>", methods=["POST"])
+def accept_service(service_request_id):
+    service_request = Service_Request.query.get(service_request_id)
+
+    # Assuming this is how you get the professional id
+    professional_id = session.get("professional_id")
+
+    if service_request:
+        # Change status to accepted
+        service_request.service_status = "accepted"
         db.session.commit()
 
-    # Redirect to login page after successful deletion
-    return redirect(url_for("user_login"))
+        # Mark payment as transferred
+        payment = Payment.query.filter_by(service_request_id=service_request_id).first()
+        if payment:
+            payment.is_transferred = True  # Mark as transferred
+            payment.payment_status = "completed"  # Update payment status as needed
+
+            # Fetch or create the professional's wallet
+            professional_wallet = ProfessionalWallet.query.filter_by(
+                professional_id=service_request.professional_id
+            ).first()
+
+            if not professional_wallet:
+                # Create a new wallet entry if it doesn't exist
+                professional_wallet = ProfessionalWallet(
+                    professional_id=service_request.professional_id, balance=0
+                )
+                db.session.add(professional_wallet)
+
+            # Transfer amount to professional
+            professional_wallet.balance += payment.amount
+
+            db.session.commit()  # Commit all changes
+            flash(
+                "Service request accepted and payment transferred to professional.",
+                "success",
+            )
+            return redirect(url_for("professional_dashboard"))
+
+    flash("Service request not found.", "danger")
+    return redirect(url_for("professional_dashboard"))
 
 
-# def fetch_all_services():
-#     services = Service.query.all()
-#     service_list = {}
-#     for service in services:
-#         service_list[service.id] = [
-#             service.name,
-#             service.base_price,
-#             service.description,
-#         ]  # Add description
-#     return service_list
-
-
-@app.route("/service/<int:service_id>", methods=["GET"])
-def service_details(service_id):
-    # Fetch the service details using the provided service ID
-    service = Service.query.get(service_id)
-
-    if service:
-        return render_template("service_details.html", service=service)
-    else:
-        # If the service does not exist, return an error or redirect
-        return "Service not found", 404
-
-
-def fetch_all_professional():
-    professionals = Service_Professional.query.all()
-    professional_list = {}
-    for professional in professionals:
-        professional_list[professional.id] = [
-            professional.name,
-            professional.experience,
-            professional.service_type,
-        ]
-    return professional_list
-
-
-@app.route("/service_request/<int:request_id>", methods=["GET"])
-def service_request_details(request_id):
-    service_request = Service_Request.query.get(request_id)
+@app.route("/reject_service/<int:service_request_id>", methods=["POST"])
+def reject_service(service_request_id):
+    service_request = Service_Request.query.get(service_request_id)
 
     if not service_request:
-        flash(f"Service request with ID {request_id} not found.", "danger")
-        return redirect(url_for("admin_dashboard"))
-
-    # Fetch related customer, professional, and service details
-    customer = Customer.query.get(service_request.customer_id)
-    professional = Service_Professional.query.get(service_request.professional_id)
-    service = Service.query.get(service_request.service_id)
-
-    return render_template(
-        "service_request_details.html",
-        service_request=service_request,
-        customer=customer,
-        professional=professional,
-        service=service,
-    )
-
-
-@app.route("/service_request_customer/<int:request_id>", methods=["GET"])
-def service_request_customer(request_id):
-    service_request = Service_Request.query.get(request_id)
-
-    if not service_request:
-        flash(f"Service request with ID {request_id} not found.", "danger")
-        return redirect(url_for("customer_dashboard"))
-
-    # Fetch related customer, professional, and service details
-    customer = Customer.query.get(service_request.customer_id)
-    professional = Service_Professional.query.get(service_request.professional_id)
-    service = Service.query.get(service_request.service_id)
-
-    return render_template(
-        "service_request_customer.html",
-        service_request=service_request,
-        customer=customer,
-        professional=professional,
-        service=service,
-    )
-
-
-@app.route("/service_request_professional/<int:request_id>", methods=["GET"])
-def service_request_professional(request_id):
-    service_request = Service_Request.query.get(request_id)
-
-    if not service_request:
-        flash(f"Service request with ID {request_id} not found.", "danger")
+        flash("Service request not found.", "danger")
         return redirect(url_for("professional_dashboard"))
 
-    # Fetch related customer, professional, and service details
-    customer = Customer.query.get(service_request.customer_id)
-    professional = Service_Professional.query.get(service_request.professional_id)
-    service = Service.query.get(service_request.service_id)
+    # Change the service request status to rejected
+    service_request.service_status = "rejected"
 
+    # Commit the change to the service request
+    db.session.commit()
+
+    # Refund to the customer only if the payment has not been transferred
+    payment = Payment.query.filter_by(service_request_id=service_request_id).first()
+
+    if payment:
+        if (
+            not payment.is_transferred
+        ):  # Only refund if the payment hasn't been transferred
+            # Fetch the customer wallet
+            customer_wallet = Wallet.query.filter_by(
+                customer_id=payment.customer_id
+            ).first()
+
+            if customer_wallet:
+                # Update the customer's wallet balance
+                customer_wallet.balance += (
+                    payment.amount
+                )  # Refund amount to customer wallet
+
+                # Commit wallet update
+                db.session.commit()
+                flash("Service request rejected. Amount refunded to customer.", "info")
+            else:
+                flash("Customer wallet not found. Unable to refund.", "warning")
+        else:
+            flash(
+                "Service request rejected, but payment was already transferred to the professional.",
+                "warning",
+            )
+
+        # Update payment status regardless of whether the refund was processed
+        payment.payment_status = "refunded"  # Update payment status
+        db.session.commit()  # Commit payment status update
+        print("Service Request:", service_request)
+        print("Payment:", payment)
+        print("Customer Wallet:", customer_wallet)
+
+    else:
+        flash("Payment record not found. No refund necessary.", "info")
+
+    return redirect(url_for("professional_dashboard"))
+
+
+@app.route("/professional_dashboard/summary")
+def professional_summary():
+    professional_id = session.get("professional_id")
+
+    # Ratings data
+    ratings_data = (
+        db.session.query(Service_Request.rating, func.count(Service_Request.rating))
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.rating.isnot(None),
+        )
+        .group_by(Service_Request.rating)
+        .all()
+    )
+
+    # Service status data (including requested services)
+    service_status_data = {
+        "requested": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "requested",
+        )
+        .count(),
+        "accepted": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "accepted",
+        )
+        .count(),
+        "rejected": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "rejected",
+        )
+        .count(),
+        "completed": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "closed",
+        )
+        .count(),
+    }
+
+    # Prepare data in a JSON-friendly structure
+    ratings_chart_data = {
+        "labels": [str(r[0]) for r in ratings_data],  # Ensure they are strings
+        "values": [r[1] for r in ratings_data],
+    }
+    status_chart_data = {
+        "labels": list(service_status_data.keys()),
+        "values": list(service_status_data.values()),
+    }
+    # Pass the data to the template
     return render_template(
-        "service_request_professional.html",
-        service_request=service_request,
-        customer=customer,
-        professional=professional,
-        service=service,
+        "professional_summary.html",
+        ratings_data=ratings_chart_data,
+        status_data=status_chart_data,
+        professional=session["username"],
+    )
+
+
+@app.route("/professional_dashboard/summary/api")
+def professional_summary_api():
+    professional_id = session.get("professional_id")
+
+    # Fetch ratings data
+    ratings_data = (
+        db.session.query(Service_Request.rating, func.count(Service_Request.rating))
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.rating.isnot(None),
+        )
+        .group_by(Service_Request.rating)
+        .all()
+    )
+
+    # Fetch service status data (including requested services)
+    service_status_data = {
+        "requested": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "requested",
+        )
+        .count(),
+        "accepted": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "accepted",
+        )
+        .count(),
+        "rejected": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "rejected",
+        )
+        .count(),
+        "completed": db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "closed",
+        )
+        .count(),
+    }
+
+    # Prepare data in a JSON-friendly structure
+    ratings_chart_data = {
+        "labels": [str(r[0]) for r in ratings_data],  # Ensure they are strings
+        "values": [r[1] for r in ratings_data],
+    }
+    status_chart_data = {
+        "labels": list(service_status_data.keys()),
+        "values": list(service_status_data.values()),
+    }
+
+    return jsonify(
+        {
+            "ratings_data": ratings_chart_data,
+            "status_data": status_chart_data,
+        }
     )
 
 
@@ -853,6 +958,306 @@ def get_professional_details(professional_id):
             "verified_status": professional.verified_status,
         }
     )
+
+
+@app.route("/professional/profile", methods=["GET"])
+def professional_profile():
+    # Fetch the currently logged-in professional
+    professional = Service_Professional.query.filter_by(
+        id=session["professional_id"]
+    ).first()
+
+    if not professional:
+        flash("Professional not found", "danger")
+        return redirect(url_for("home"))
+
+    # Fetch services associated with the professional
+    professional_services = ProfessionalService.query.filter_by(
+        professional_id=professional.id
+    ).all()
+
+    return render_template(
+        "professional_profile.html",
+        professional=professional,
+        professional_services=professional_services,
+    )
+
+
+@app.route("/professional/profile/update", methods=["POST"])
+def update_professional_profile():
+    professional_id = session.get("professional_id")
+    professional = Service_Professional.query.filter_by(id=professional_id).first()
+
+    if not professional:
+        flash("Professional not found", "danger")
+        return redirect(url_for("professional_profile"))
+
+    # Get the form data
+    name = request.form.get("name")
+    username = request.form.get("username")
+    email = request.form.get("email")
+    address = request.form.get("address")
+    pin_code = request.form.get("pin_code")
+    gender = request.form.get("gender")  # Get the gender from the form
+
+    # Check if the new username already exists in both tables, excluding the current professional
+    existing_username_professional = Service_Professional.query.filter(
+        Service_Professional.username == username,
+        Service_Professional.id != professional_id,
+    ).first()
+    existing_username_customer = Customer.query.filter(
+        Customer.username == username
+    ).first()
+
+    # Check if the new email already exists in both tables, excluding the current professional
+    existing_email_professional = Service_Professional.query.filter(
+        Service_Professional.email == email, Service_Professional.id != professional_id
+    ).first()
+    existing_email_customer = Customer.query.filter(Customer.email == email).first()
+
+    if existing_username_professional or existing_username_customer:
+        flash("Username already exists. Please choose a different one.", "danger")
+        return redirect(url_for("professional_profile"))
+
+    if existing_email_professional or existing_email_customer:
+        flash("Email address already exists. Please choose a different one.", "danger")
+        return redirect(url_for("professional_profile"))
+    # Handle profile picture upload
+    if "profile_pic" in request.files:
+        file = request.files["profile_pic"]
+        if file:
+            professional_pic_path = save_professional_pic(file)  # Save the customer pic
+            professional.profile_pic = f"/static/professional_pic/{professional_pic_path}"  # Save the path in the database
+
+    # Update the professional's information
+    professional.name = name
+    professional.username = username
+    professional.email = email
+    professional.address = address
+    professional.pin_code = pin_code
+    professional.gender = gender  # Update the gender
+
+    # Commit changes to the database
+    db.session.commit()
+
+    flash("Profile updated successfully!", "success")
+    return redirect(url_for("professional_profile"))
+
+
+@app.route("/professional/profile/update_services", methods=["POST"])
+def update_professional_services():
+    professional_id = session.get("professional_id")
+    if professional_id:
+        professional_services = ProfessionalService.query.filter_by(
+            professional_id=professional_id
+        ).all()
+
+        for service in professional_services:
+            custom_price = request.form.get(f"custom_price_{service.service_id}")
+            custom_description = request.form.get(
+                f"custom_description_{service.service_id}"
+            )
+            custom_time_required = request.form.get(f"custom_time_{service.service_id}")
+            base_price = service.service.base_price
+
+            if custom_price:
+                service.custom_price = custom_price
+            if custom_description:
+                service.custom_description = custom_description
+            if custom_time_required:
+                service.custom_time_required = custom_time_required
+            if custom_price < str(base_price):
+                flash(
+                    "You cannot enter a custom price less than the base price.",
+                    "danger",
+                )
+                return redirect(
+                    url_for("professional_profile")
+                )  # Redirect back to the profile
+
+        db.session.commit()
+        flash("Services updated successfully!", "success")
+    return redirect(url_for("professional_profile"))
+
+
+@app.route("/professional_payments")
+def professional_payments():
+    professional_id = session.get(
+        "professional_id"
+    )  # Assuming professional_id is stored in session
+    professional = Service_Professional.query.filter_by(id=professional_id).first()
+
+    # Fetch payments related to the professional and join with the Customer table to get the customer name
+    payments = (
+        db.session.query(Payment, Customer.name.label("customer_name"))
+        .join(Customer, Payment.customer_id == Customer.id)
+        .filter(Payment.professional_id == professional_id)
+        .all()
+    )
+
+    # Get the wallet balance, defaulting to 0 if wallet doesn't exist
+    wallet = ProfessionalWallet.query.filter_by(professional_id=professional_id).first()
+    wallet_balance = wallet.balance if wallet else 0.0
+
+    return render_template(
+        "professional_payments.html",
+        payments=payments,  # Pass payments with customer name
+        wallet_balance=wallet_balance,
+        professional=professional,
+    )
+
+
+# ============================================  Service Routes  ============================================
+
+
+@app.route("/services/add", methods=["GET", "POST"])
+def add_service():
+    if request.method == "POST":
+        service_name = request.form.get("service_name")
+        description = request.form.get("description")
+        base_price = request.form.get("base_price")
+        base_time_required = request.form.get("base_time_required")
+
+        # Handle the service picture upload
+        service_pic = None
+        if "service_pic" in request.files:
+            file = request.files["service_pic"]
+            if file and file.filename:  # Ensure a file is uploaded
+                service_pic = save_service_picture(file)
+
+        # Create and add new service
+        new_service = Service(
+            name=service_name,
+            description=description,
+            base_price=base_price,
+            base_time_required=base_time_required,
+            service_pic=(
+                f"/static/service_pics/{service_pic}" if service_pic else None
+            ),  # Store service picture path
+        )
+        db.session.add(new_service)
+        db.session.commit()
+
+        flash("Service added successfully!", "success")  # Flash message for feedback
+
+        # Redirect to the admin dashboard after adding the service
+        return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/services/edit/<int:service_id>", methods=["POST"])
+def edit_service(service_id):
+    service = Service.query.get_or_404(service_id)
+
+    service.name = request.form.get("service_name")
+    service.description = request.form.get("description")
+    service.base_price = request.form.get("base_price")
+    service.base_time_required = request.form.get("base_time_required")
+
+    # Handle the service picture upload
+    if "service_pic" in request.files:
+        file = request.files["service_pic"]
+        if file and file.filename:  # Check if a file was uploaded
+            filename = save_service_picture(file)  # Save the file and get the filename
+            service.service_pic = (
+                f"/static/service_pics/{filename}"  # Update the picture path
+            )
+
+    db.session.commit()
+    flash("Service updated successfully!", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/services/delete/<int:service_id>", methods=["POST"])
+def delete_service(service_id):
+    service = Service.query.get(service_id)
+
+    if service:
+        db.session.delete(service)
+        db.session.commit()
+
+    # Redirect to login page after successful deletion
+    return redirect(url_for("user_login"))
+
+
+@app.route("/service/<int:service_id>", methods=["GET"])
+def service_details(service_id):
+    # Fetch the service details using the provided service ID
+    service = Service.query.get(service_id)
+
+    if service:
+        return render_template("service_details.html", service=service)
+    else:
+        # If the service does not exist, return an error or redirect
+        return "Service not found", 404
+
+
+@app.route("/service_request/<int:request_id>", methods=["GET"])
+def service_request_details(request_id):
+    service_request = Service_Request.query.get(request_id)
+
+    if not service_request:
+        flash(f"Service request with ID {request_id} not found.", "danger")
+        return redirect(url_for("admin_dashboard"))
+
+    # Fetch related customer, professional, and service details
+    customer = Customer.query.get(service_request.customer_id)
+    professional = Service_Professional.query.get(service_request.professional_id)
+    service = Service.query.get(service_request.service_id)
+
+    return render_template(
+        "service_request_details.html",
+        service_request=service_request,
+        customer=customer,
+        professional=professional,
+        service=service,
+    )
+
+
+@app.route("/service_request_customer/<int:request_id>", methods=["GET"])
+def service_request_customer(request_id):
+    service_request = Service_Request.query.get(request_id)
+
+    if not service_request:
+        flash(f"Service request with ID {request_id} not found.", "danger")
+        return redirect(url_for("customer_dashboard"))
+
+    # Fetch related customer, professional, and service details
+    customer = Customer.query.get(service_request.customer_id)
+    professional = Service_Professional.query.get(service_request.professional_id)
+    service = Service.query.get(service_request.service_id)
+
+    return render_template(
+        "service_request_customer.html",
+        service_request=service_request,
+        customer=customer,
+        professional=professional,
+        service=service,
+    )
+
+
+@app.route("/service_request_professional/<int:request_id>", methods=["GET"])
+def service_request_professional(request_id):
+    service_request = Service_Request.query.get(request_id)
+
+    if not service_request:
+        flash(f"Service request with ID {request_id} not found.", "danger")
+        return redirect(url_for("professional_dashboard"))
+
+    # Fetch related customer, professional, and service details
+    customer = Customer.query.get(service_request.customer_id)
+    professional = Service_Professional.query.get(service_request.professional_id)
+    service = Service.query.get(service_request.service_id)
+
+    return render_template(
+        "service_request_professional.html",
+        service_request=service_request,
+        customer=customer,
+        professional=professional,
+        service=service,
+    )
+
+
+# ========================================  Customer Routes =======================================
 
 
 @app.route("/customer_dashboard")
@@ -1085,471 +1490,6 @@ def close_service():
         return redirect(url_for("customer_dashboard"))
 
 
-@app.route("/professional_dashboard")
-def professional_dashboard():
-    if "professional_id" in session:  # Check if professional is logged in
-        professional_id = session["professional_id"]
-        professional = Service_Professional.query.get(professional_id)
-
-        # Initialize the message variable
-        message = None
-
-        if professional:
-            # Check the professional's verification and block status
-            if professional.verified_status is None:
-                message = "Your admin verification is under process."
-            elif professional.verified_status == "approved":
-                service_requests = Service_Request.query.filter_by(
-                    professional_id=professional_id
-                ).all()
-                # Check if there are any service requests
-                if not any(
-                    req.service_status in ["requested", "accepted"]
-                    for req in service_requests
-                ):
-                    flash(
-                        "Your application has been approved. Please wait for service Requests.",
-                        "success",
-                    )
-            elif professional.verified_status == "rejected":
-                message = "Your application has been rejected. Please change your profile info."
-            elif professional.block_status:
-                message = "You have been blocked by admin and cannot book any services."
-
-        # Fetching service requests specific to the logged-in professional
-        service_requests = (
-            Service_Request.query.options(
-                joinedload(
-                    Service_Request.professional
-                )  # Eager load the professional relationship
-            )
-            .filter_by(professional_id=professional_id)
-            .all()
-        )
-
-        # Fetch unique pin codes based on customers from the service requests
-        pin_codes = (
-            db.session.query(Customer.pin_code)
-            .join(Service_Request)
-            .filter(Service_Request.professional_id == professional_id)
-            .distinct()
-            .all()
-        )
-        pin_codes = [pin[0] for pin in pin_codes]  # Extracting pin codes from tuples
-
-        # Fetch today's services, including both requested and accepted services
-        today_services = [
-            req
-            for req in service_requests
-            if req.service_status in ["requested", "accepted"]
-        ]
-        closed_services = [
-            req for req in service_requests if req.service_status == "closed"
-        ]
-
-        return render_template(
-            "professional_dashboard.html",
-            today_services=today_services,
-            closed_services=closed_services,
-            message=message,  # This will always have a value
-            pin_codes=pin_codes,
-            professional=session["username"],
-        )
-
-    return redirect(url_for("user_login"))  # Redirect if not logged in
-
-
-@app.route("/search_customers", methods=["GET"])
-def search_customers():
-    entity = request.args.get("entity")
-    pin_code = request.args.get("pin_code")
-    customer_name = request.args.get("customer_name")
-    date_of_service = request.args.get("date_of_service")
-    date_of_closing = request.args.get("date_of_closing")
-    # query = request.args.get("query")
-
-    service_requests_query = Service_Request.query.filter(
-        Service_Request.professional_id == session["professional_id"]
-    )
-
-    # Filter by query (service name or description)
-    # if query:
-    #     service_requests_query = service_requests_query.filter(
-    #         Customer.name.ilike(f"%{query}%")
-    #     )
-
-    # Filter by entity type
-    if entity == "pin_code" and pin_code:
-        service_requests_query = service_requests_query.filter(
-            Service_Request.customer.has(pin_code=pin_code)
-        )
-
-    elif entity == "customer_name" and customer_name:
-        service_requests_query = service_requests_query.filter(
-            Service_Request.customer.has(Customer.name.ilike(f"%{customer_name}%"))
-        )
-
-    elif entity == "date_of_service" and date_of_service:
-        try:
-            date_of_service_obj = datetime.strptime(date_of_service, "%Y-%m-%d")
-            service_requests_query = service_requests_query.filter(
-                Service_Request.date_of_request == date_of_service_obj
-            )
-        except ValueError:
-            print("Invalid date format for date of service. Please use YYYY-MM-DD.")
-
-    elif entity == "date_of_closing" and date_of_closing:
-        try:
-            date_of_closing_obj = datetime.strptime(date_of_closing, "%Y-%m-%d")
-            service_requests_query = service_requests_query.filter(
-                Service_Request.date_of_completion >= date_of_closing_obj,
-                Service_Request.date_of_completion
-                < date_of_closing_obj.replace(hour=23, minute=59, second=59),
-            )
-        except ValueError:
-            print("Invalid date format for closing date. Please use YYYY-MM-DD.")
-
-    # Fetch the matching service requests
-    service_requests = service_requests_query.all()
-
-    # Initialize a set to collect unique customers
-    matching_customers = set()
-
-    for service_request in service_requests:
-        matching_customers.add(
-            service_request.customer
-        )  # Use a set to avoid duplicates
-
-    return render_template(
-        "matching_customers.html",
-        customers=list(matching_customers),
-        category="Matching Customers",
-    )
-
-
-# @app.route("/accept_service/<int:service_request_id>", methods=["POST"])
-# def accept_service(service_request_id):
-#     service_request = Service_Request.query.get(service_request_id)
-
-#     # Assuming this is how you get the professional id
-#     professional_id = session.get("professional_id")
-
-#     if service_request:
-#         # Check if the current professional is the one assigned to this service request
-#         if service_request.professional_id != professional_id:
-#             flash("You are not authorized to accept this service request.", "danger")
-#             return redirect(url_for("professional_dashboard"))
-
-#         # Change status to accepted
-#         service_request.service_status = "accepted"
-#         db.session.commit()
-
-#         # Mark payment as transferred
-#         payment = Payment.query.filter_by(service_request_id=service_request_id).first()
-#         if payment:
-#             payment.is_transferred = True  # Mark as transferred
-#             payment.payment_status = "completed"  # Update payment status as needed
-
-#             # Update professional wallet
-#             professional_wallet = ProfessionalWallet.query.filter_by(
-#                 professional_id=service_request.professional_id
-#             ).first()
-#             if professional_wallet:
-#                 professional_wallet.balance += (
-#                     payment.amount
-#                 )  # Transfer amount to professional
-
-#             db.session.commit()  # Commit all changes
-#             flash(
-#                 "Service request accepted and payment transferred to professional.",
-#                 "success",
-#             )
-#             return redirect(url_for("professional_dashboard"))
-
-
-#     flash("Service request not found.", "danger")
-#     return redirect(url_for("professional_dashboard"))
-@app.route("/accept_service/<int:service_request_id>", methods=["POST"])
-def accept_service(service_request_id):
-    service_request = Service_Request.query.get(service_request_id)
-
-    # Assuming this is how you get the professional id
-    professional_id = session.get("professional_id")
-
-    if service_request:
-        # # Check if the current professional is the one assigned to this service request
-        # if service_request.professional_id != professional_id:
-        #     flash("You are not authorized to accept this service request.", "danger")
-        #     return redirect(url_for("professional_dashboard"))
-
-        # Change status to accepted
-        service_request.service_status = "accepted"
-        db.session.commit()
-
-        # Mark payment as transferred
-        payment = Payment.query.filter_by(service_request_id=service_request_id).first()
-        if payment:
-            payment.is_transferred = True  # Mark as transferred
-            payment.payment_status = "completed"  # Update payment status as needed
-
-            # Fetch or create the professional's wallet
-            professional_wallet = ProfessionalWallet.query.filter_by(
-                professional_id=service_request.professional_id
-            ).first()
-
-            if not professional_wallet:
-                # Create a new wallet entry if it doesn't exist
-                professional_wallet = ProfessionalWallet(
-                    professional_id=service_request.professional_id, balance=0
-                )
-                db.session.add(professional_wallet)
-
-            # Transfer amount to professional
-            professional_wallet.balance += payment.amount
-
-            db.session.commit()  # Commit all changes
-            flash(
-                "Service request accepted and payment transferred to professional.",
-                "success",
-            )
-            return redirect(url_for("professional_dashboard"))
-
-    flash("Service request not found.", "danger")
-    return redirect(url_for("professional_dashboard"))
-
-
-@app.route("/reject_service/<int:service_request_id>", methods=["POST"])
-def reject_service(service_request_id):
-    service_request = Service_Request.query.get(service_request_id)
-
-    if not service_request:
-        flash("Service request not found.", "danger")
-        return redirect(url_for("professional_dashboard"))
-
-    # Change the service request status to rejected
-    service_request.service_status = "rejected"
-
-    # Commit the change to the service request
-    db.session.commit()
-
-    # Refund to the customer only if the payment has not been transferred
-    payment = Payment.query.filter_by(service_request_id=service_request_id).first()
-
-    if payment:
-        if (
-            not payment.is_transferred
-        ):  # Only refund if the payment hasn't been transferred
-            # Fetch the customer wallet
-            customer_wallet = Wallet.query.filter_by(
-                customer_id=payment.customer_id
-            ).first()
-
-            if customer_wallet:
-                # Update the customer's wallet balance
-                customer_wallet.balance += (
-                    payment.amount
-                )  # Refund amount to customer wallet
-
-                # Commit wallet update
-                db.session.commit()
-                flash("Service request rejected. Amount refunded to customer.", "info")
-            else:
-                flash("Customer wallet not found. Unable to refund.", "warning")
-        else:
-            flash(
-                "Service request rejected, but payment was already transferred to the professional.",
-                "warning",
-            )
-
-        # Update payment status regardless of whether the refund was processed
-        payment.payment_status = "refunded"  # Update payment status
-        db.session.commit()  # Commit payment status update
-        print("Service Request:", service_request)
-        print("Payment:", payment)
-        print("Customer Wallet:", customer_wallet)
-
-    else:
-        flash("Payment record not found. No refund necessary.", "info")
-
-    return redirect(url_for("professional_dashboard"))
-
-
-@app.route("/professional_dashboard/summary")
-def professional_summary():
-    professional_id = session.get("professional_id")
-
-    # Ratings data
-    ratings_data = (
-        db.session.query(Service_Request.rating, func.count(Service_Request.rating))
-        .filter(
-            Service_Request.professional_id == professional_id,
-            Service_Request.rating.isnot(None),
-        )
-        .group_by(Service_Request.rating)
-        .all()
-    )
-
-    # Service status data (including requested services)
-    service_status_data = {
-        "requested": db.session.query(Service_Request)
-        .filter(
-            Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "requested",
-        )
-        .count(),
-        "accepted": db.session.query(Service_Request)
-        .filter(
-            Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "accepted",
-        )
-        .count(),
-        "rejected": db.session.query(Service_Request)
-        .filter(
-            Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "rejected",
-        )
-        .count(),
-        "completed": db.session.query(Service_Request)
-        .filter(
-            Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "closed",
-        )
-        .count(),
-    }
-
-    # Prepare data in a JSON-friendly structure
-    ratings_chart_data = {
-        "labels": [str(r[0]) for r in ratings_data],  # Ensure they are strings
-        "values": [r[1] for r in ratings_data],
-    }
-    status_chart_data = {
-        "labels": list(service_status_data.keys()),
-        "values": list(service_status_data.values()),
-    }
-    # Pass the data to the template
-    return render_template(
-        "professional_summary.html",
-        ratings_data=ratings_chart_data,
-        status_data=status_chart_data,
-        professional=session["username"],
-    )
-
-
-# @app.route("/professional_dashboard/summary/api")
-# def professional_summary_api():
-#     professional_id = session.get("professional_id")
-
-#     # Repeat the logic for ratings and service status
-#     ratings_data = (
-#         db.session.query(Service_Request.rating, func.count(Service_Request.rating))
-#         .filter(
-#             Service_Request.professional_id == professional_id,
-#             Service_Request.rating.isnot(None),
-#         )
-#         .group_by(Service_Request.rating)
-#         .all()
-#     )
-
-#     service_status_data = {
-#         "accepted": db.session.query(Service_Request)
-#         .filter(
-#             Service_Request.professional_id == professional_id,
-#             Service_Request.service_status == "accepted",
-#         )
-#         .count(),
-#         "rejected": db.session.query(Service_Request)
-#         .filter(
-#             Service_Request.professional_id == professional_id,
-#             Service_Request.service_status == "rejected",
-#         )
-#         .count(),
-#         "completed": db.session.query(Service_Request)
-#         .filter(
-#             Service_Request.professional_id == professional_id,
-#             Service_Request.service_status == "closed",
-#         )
-#         .count(),
-#     }
-
-#     # Prepare data in a JSON-friendly structure
-#     ratings_chart_data = {
-#         "labels": [str(r[0]) for r in ratings_data],  # Ensure they are strings
-#         "values": [r[1] for r in ratings_data],
-#     }
-#     status_chart_data = {
-#         "labels": list(service_status_data.keys()),
-#         "values": list(service_status_data.values()),
-#     }
-
-#     return jsonify(
-#         {
-#             "ratings": ratings_chart_data,
-#             "status": status_chart_data,
-#         }
-#     )
-
-
-@app.route("/professional_dashboard/summary/api")
-def professional_summary_api():
-    professional_id = session.get("professional_id")
-
-    # Fetch ratings data
-    ratings_data = (
-        db.session.query(Service_Request.rating, func.count(Service_Request.rating))
-        .filter(
-            Service_Request.professional_id == professional_id,
-            Service_Request.rating.isnot(None),
-        )
-        .group_by(Service_Request.rating)
-        .all()
-    )
-
-    # Fetch service status data (including requested services)
-    service_status_data = {
-        "requested": db.session.query(Service_Request)
-        .filter(
-            Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "requested",
-        )
-        .count(),
-        "accepted": db.session.query(Service_Request)
-        .filter(
-            Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "accepted",
-        )
-        .count(),
-        "rejected": db.session.query(Service_Request)
-        .filter(
-            Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "rejected",
-        )
-        .count(),
-        "completed": db.session.query(Service_Request)
-        .filter(
-            Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "closed",
-        )
-        .count(),
-    }
-
-    # Prepare data in a JSON-friendly structure
-    ratings_chart_data = {
-        "labels": [str(r[0]) for r in ratings_data],  # Ensure they are strings
-        "values": [r[1] for r in ratings_data],
-    }
-    status_chart_data = {
-        "labels": list(service_status_data.keys()),
-        "values": list(service_status_data.values()),
-    }
-
-    return jsonify(
-        {
-            "ratings_data": ratings_chart_data,
-            "status_data": status_chart_data,
-        }
-    )
-
-
 @app.route("/customer_dashboard/summary")
 def customer_summary():
     customer_id = session.get("customer_id")
@@ -1674,124 +1614,31 @@ def customer_summary_api():
     )
 
 
-@app.route("/professional/profile", methods=["GET"])
-def professional_profile():
-    # Fetch the currently logged-in professional
-    professional = Service_Professional.query.filter_by(
-        id=session["professional_id"]
-    ).first()
+@app.route("/customer_payments")
+def customer_payments():
+    customer_id = session.get(
+        "customer_id"
+    )  # Assuming customer_id is stored in the session
+    customer = Customer.query.filter_by(id=customer_id).first()
 
-    if not professional:
-        flash("Professional not found", "danger")
-        return redirect(url_for("home"))
-
-    # Fetch services associated with the professional
-    professional_services = ProfessionalService.query.filter_by(
-        professional_id=professional.id
-    ).all()
-
-    return render_template(
-        "professional_profile.html",
-        professional=professional,
-        professional_services=professional_services,
+    # Fetch the payments related to the customer and join with the Service_Professional table to get the professional name
+    payments = (
+        db.session.query(Payment, Service_Professional.name.label("professional_name"))
+        .join(Service_Professional, Payment.professional_id == Service_Professional.id)
+        .filter(Payment.customer_id == customer_id)
+        .all()
     )
 
+    # Get the wallet balance, defaulting to 0 if wallet doesn't exist
+    wallet = Wallet.query.filter_by(customer_id=customer_id).first()
+    wallet_balance = wallet.balance if wallet else 0.0
 
-@app.route("/professional/profile/update", methods=["POST"])
-def update_professional_profile():
-    professional_id = session.get("professional_id")
-    professional = Service_Professional.query.filter_by(id=professional_id).first()
-
-    if not professional:
-        flash("Professional not found", "danger")
-        return redirect(url_for("professional_profile"))
-
-    # Get the form data
-    name = request.form.get("name")
-    username = request.form.get("username")
-    email = request.form.get("email")
-    address = request.form.get("address")
-    pin_code = request.form.get("pin_code")
-    gender = request.form.get("gender")  # Get the gender from the form
-
-    # Check if the new username already exists in both tables, excluding the current professional
-    existing_username_professional = Service_Professional.query.filter(
-        Service_Professional.username == username,
-        Service_Professional.id != professional_id,
-    ).first()
-    existing_username_customer = Customer.query.filter(
-        Customer.username == username
-    ).first()
-
-    # Check if the new email already exists in both tables, excluding the current professional
-    existing_email_professional = Service_Professional.query.filter(
-        Service_Professional.email == email, Service_Professional.id != professional_id
-    ).first()
-    existing_email_customer = Customer.query.filter(Customer.email == email).first()
-
-    if existing_username_professional or existing_username_customer:
-        flash("Username already exists. Please choose a different one.", "danger")
-        return redirect(url_for("professional_profile"))
-
-    if existing_email_professional or existing_email_customer:
-        flash("Email address already exists. Please choose a different one.", "danger")
-        return redirect(url_for("professional_profile"))
-    # Handle profile picture upload
-    if "profile_pic" in request.files:
-        file = request.files["profile_pic"]
-        if file:
-            professional_pic_path = save_professional_pic(file)  # Save the customer pic
-            professional.profile_pic = f"/static/professional_pic/{professional_pic_path}"  # Save the path in the database
-
-    # Update the professional's information
-    professional.name = name
-    professional.username = username
-    professional.email = email
-    professional.address = address
-    professional.pin_code = pin_code
-    professional.gender = gender  # Update the gender
-
-    # Commit changes to the database
-    db.session.commit()
-
-    flash("Profile updated successfully!", "success")
-    return redirect(url_for("professional_profile"))
-
-
-@app.route("/professional/profile/update_services", methods=["POST"])
-def update_professional_services():
-    professional_id = session.get("professional_id")
-    if professional_id:
-        professional_services = ProfessionalService.query.filter_by(
-            professional_id=professional_id
-        ).all()
-
-        for service in professional_services:
-            custom_price = request.form.get(f"custom_price_{service.service_id}")
-            custom_description = request.form.get(
-                f"custom_description_{service.service_id}"
-            )
-            custom_time_required = request.form.get(f"custom_time_{service.service_id}")
-            base_price = service.service.base_price
-
-            if custom_price:
-                service.custom_price = custom_price
-            if custom_description:
-                service.custom_description = custom_description
-            if custom_time_required:
-                service.custom_time_required = custom_time_required
-            if custom_price < str(base_price):
-                flash(
-                    "You cannot enter a custom price less than the base price.",
-                    "danger",
-                )
-                return redirect(
-                    url_for("professional_profile")
-                )  # Redirect back to the profile
-
-        db.session.commit()
-        flash("Services updated successfully!", "success")
-    return redirect(url_for("professional_profile"))
+    return render_template(
+        "customer_payments.html",
+        payments=payments,  # Pass payments with professional name
+        wallet_balance=wallet_balance,
+        customer=customer,
+    )
 
 
 @app.route("/customer/profile", methods=["GET"])
@@ -1874,35 +1721,6 @@ def update_customer_profile():
     return redirect(url_for("customer_profile"))
 
 
-@app.route("/close_service_professional", methods=["POST"])
-def close_service_professional():
-    data = request.json
-    request_id = data.get("requestId")
-    customer_rating = data.get("customerRating")
-    customer_remarks = data.get("customerRemark")
-
-    service_request = Service_Request.query.get(request_id)
-    professional_id = session["professional_id"]
-
-    if service_request and service_request.professional_id == professional_id:
-        # Update the service status to 'closed'
-        service_request.service_status = "closed"
-        service_request.customer_rating = customer_rating  # Save the customer rating
-        service_request.customer_remarks = customer_remarks  # Save the remarks
-        service_request.date_of_completion = (
-            datetime.utcnow()
-        )  # Set the completion date
-
-        # Commit the changes to the database
-        db.session.commit()
-
-        # Flash a success message and return the dashboard
-        flash("Service request closed and rated successfully.", "success")
-        return redirect(url_for("professional_dashboard"))
-
-    return jsonify({"message": "An error occurred. Please try again."}), 400
-
-
 @app.route("/rate_professional/<int:request_id>", methods=["POST"])
 def rate_professional(request_id):
     service_request = Service_Request.query.get(request_id)
@@ -1933,249 +1751,33 @@ def cancel_service(service_id):
     return redirect(url_for("customer_dashboard"))
 
 
-def update_professional_rating(professional_id):
-    # Count the number of completed service requests for the professional
-    completed_requests_count = (
-        db.session.query(Service_Request)
-        .filter(
-            Service_Request.professional_id == professional_id,
-            Service_Request.service_status == "closed",
-            Service_Request.rating.isnot(
-                None
-            ),  # Only consider requests with customer ratings
-        )
-        .count()
-    )
+@app.route("/close_service_professional", methods=["POST"])
+def close_service_professional():
+    data = request.json
+    request_id = data.get("requestId")
+    customer_rating = data.get("customerRating")
+    customer_remarks = data.get("customerRemark")
 
-    # Calculate the average rating only if there are at least 7 completed service requests
-    if completed_requests_count >= 7:
-        average = (
-            db.session.query(func.avg(Service_Request.rating))
-            .filter(
-                Service_Request.professional_id == professional_id,
-                Service_Request.service_status == "closed",
-                Service_Request.rating.isnot(
-                    None
-                ),  # Only consider requests with customer ratings
-            )
-            .scalar()
-        )
-        average = round(average, 1) if average is not None else 0.0
-        # Update the professional's average rating in the database
-        professional = Service_Professional.query.get(professional_id)
-        if professional:
-            professional.average_rating = average
-            db.session.commit()
+    service_request = Service_Request.query.get(request_id)
+    professional_id = session["professional_id"]
 
-    else:
-        # If less than 7 service requests, set the average rating to None
-        professional = Service_Professional.query.get(professional_id)
-        if professional:
-            professional.average_rating = None
-            db.session.commit()
+    if service_request and service_request.professional_id == professional_id:
+        # Update the service status to 'closed'
+        service_request.service_status = "closed"
+        service_request.customer_rating = customer_rating  # Save the customer rating
+        service_request.customer_remarks = customer_remarks  # Save the remarks
+        service_request.date_of_completion = (
+            datetime.utcnow()
+        )  # Set the completion date
 
-    return professional.average_rating  # Return the updated average rating
-
-
-@app.route("/block_customer/<int:customer_id>", methods=["POST"])
-def block_customer(customer_id):
-    customer = Customer.query.get_or_404(customer_id)
-    customer.is_blocked = True  # Set the is_blocked field to True
-    db.session.commit()
-    flash("Customer has been blocked successfully.", "success")
-    return redirect(url_for("admin_dashboard"))
-
-
-@app.route("/unblock_customer/<int:customer_id>", methods=["POST"])
-def unblock_customer(customer_id):
-    customer = Customer.query.get_or_404(customer_id)
-    customer.is_blocked = False  # Set the is_blocked field to False
-    db.session.commit()
-    flash("Customer has been Unblocked successfully.", "success")
-    return redirect(url_for("admin_dashboard"))
-
-
-def update_customer_rating(customer_id):
-    # Count the number of completed service requests for the customer
-    completed_requests_count = (
-        db.session.query(Service_Request)
-        .filter(
-            Service_Request.customer_id == customer_id,
-            Service_Request.service_status == "closed",
-            Service_Request.customer_rating.isnot(
-                None
-            ),  # Only consider requests with professional ratings
-        )
-        .count()
-    )
-
-    # Calculate the average rating only if there are at least 7 completed service requests
-    if completed_requests_count >= 7:
-        average = (
-            db.session.query(func.avg(Service_Request.customer_rating))
-            .filter(
-                Service_Request.customer_id == customer_id,
-                Service_Request.service_status == "closed",
-                Service_Request.customer_rating.isnot(
-                    None
-                ),  # Only consider requests with professional ratings
-            )
-            .scalar()
-        )
-        average = round(average, 1) if average is not None else 0.0
-        # Update the customer's average rating in the database
-        customer = Customer.query.get(customer_id)
-        if customer:
-            customer.average_rating = average
-            db.session.commit()
-
-    else:
-        # If less than 7 service requests, set the average rating to None
-        customer = Customer.query.get(customer_id)
-        if customer:
-            customer.average_rating = None
-            db.session.commit()
-
-    return customer.average_rating  # Return the updated average rating
-
-
-@app.route("/professional/block/<int:professional_id>", methods=["POST"])
-def block_professional(professional_id):
-    professional = Service_Professional.query.get(professional_id)
-    if professional:
-        professional.block_status = True  # Set the block status to True
+        # Commit the changes to the database
         db.session.commit()
-        flash("Professional has been blocked successfully.", "success")
-    else:
-        flash("Professional not found.", "danger")
-    return redirect(url_for("admin_dashboard"))  # Redirect back to the admin dashboard
 
+        # Flash a success message and return the dashboard
+        flash("Service request closed and rated successfully.", "success")
+        return redirect(url_for("professional_dashboard"))
 
-@app.route("/professional/unblock/<int:professional_id>", methods=["POST"])
-def unblock_professional(professional_id):
-    professional = Service_Professional.query.get(professional_id)
-    if professional:
-        professional.block_status = False  # Set the block status to False
-        db.session.commit()
-        flash("Professional has been unblocked successfully.", "success")
-    else:
-        flash("Professional not found.", "danger")
-    return redirect(url_for("admin_dashboard"))  # Redirect back to the admin dashboard
-
-
-# @app.route("/process_payment", methods=["POST"])
-# def process_payment():
-#     try:
-#         # Get the form data
-#         service_id = request.form.get("service_id")
-#         professional_id = request.form.get("professional_id")
-#         customer_id = request.form.get("customer_id")
-#         amount = float(request.form.get("amount"))
-
-#         # Fetch date and time from the form data
-#         requested_date = request.form.get("requested_date")
-#         requested_time = request.form.get("requested_time")
-
-#         if not requested_date or not requested_time:
-#             flash("Please select a valid date and time for the service.", "error")
-#             return redirect(url_for("get_service_professionals", service_id=service_id))
-
-#         # Convert requested_date and requested_time to proper objects
-#         try:
-#             requested_date_obj = datetime.strptime(requested_date, "%Y-%m-%d").date()
-#             requested_time_obj = datetime.strptime(requested_time, "%H:%M").time()
-#         except ValueError:
-#             flash("Invalid date or time format.", "danger")
-#             return redirect(url_for("get_service_professionals", service_id=service_id))
-
-#         # Create the service request first
-#         service_request = Service_Request(
-#             service_id=service_id,
-#             customer_id=customer_id,
-#             professional_id=professional_id,
-#             requested_date=requested_date_obj,
-#             requested_time=requested_time_obj,
-#             service_status="requested",
-#         )
-
-#         # Add the service request to the session and commit to get its ID
-#         db.session.add(service_request)
-#         db.session.commit()
-
-#         # Now that we have the service_request_id, we can create the payment record
-#         payment = Payment(
-#             service_request_id=service_request.id,  # Use the ID from the created service request
-#             customer_id=customer_id,
-#             professional_id=professional_id,
-#             amount=amount,
-#             date_of_payment=datetime.utcnow(),
-#             payment_status="Pending",
-#         )
-
-#         # Add payment to the session and commit
-#         db.session.add(payment)
-#         db.session.commit()
-
-#         # Redirect or respond accordingly
-#         return redirect(url_for("customer_dashboard"))
-
-#     except KeyError as e:
-#         flash(f"Missing data: {str(e)}", "error")
-#         return redirect(url_for("get_service_professionals", service_id=service_id))
-
-
-@app.route("/customer_payments")
-def customer_payments():
-    customer_id = session.get(
-        "customer_id"
-    )  # Assuming customer_id is stored in the session
-    customer = Customer.query.filter_by(id=customer_id).first()
-
-    # Fetch the payments related to the customer and join with the Service_Professional table to get the professional name
-    payments = (
-        db.session.query(Payment, Service_Professional.name.label("professional_name"))
-        .join(Service_Professional, Payment.professional_id == Service_Professional.id)
-        .filter(Payment.customer_id == customer_id)
-        .all()
-    )
-
-    # Get the wallet balance, defaulting to 0 if wallet doesn't exist
-    wallet = Wallet.query.filter_by(customer_id=customer_id).first()
-    wallet_balance = wallet.balance if wallet else 0.0
-
-    return render_template(
-        "customer_payments.html",
-        payments=payments,  # Pass payments with professional name
-        wallet_balance=wallet_balance,
-        customer=customer,
-    )
-
-
-@app.route("/professional_payments")
-def professional_payments():
-    professional_id = session.get(
-        "professional_id"
-    )  # Assuming professional_id is stored in session
-    professional = Service_Professional.query.filter_by(id=professional_id).first()
-
-    # Fetch payments related to the professional and join with the Customer table to get the customer name
-    payments = (
-        db.session.query(Payment, Customer.name.label("customer_name"))
-        .join(Customer, Payment.customer_id == Customer.id)
-        .filter(Payment.professional_id == professional_id)
-        .all()
-    )
-
-    # Get the wallet balance, defaulting to 0 if wallet doesn't exist
-    wallet = ProfessionalWallet.query.filter_by(professional_id=professional_id).first()
-    wallet_balance = wallet.balance if wallet else 0.0
-
-    return render_template(
-        "professional_payments.html",
-        payments=payments,  # Pass payments with customer name
-        wallet_balance=wallet_balance,
-        professional=professional,
-    )
+    return jsonify({"message": "An error occurred. Please try again."}), 400
 
 
 @app.route("/forgot_password", methods=["GET", "POST"])
@@ -2234,3 +1836,229 @@ def reset_password(user_id):
             return redirect(url_for("user_login"))
 
     return render_template("reset_password.html", user_id=user_id)
+
+
+# =============================================== Function Def =============================================================
+
+
+def fetch_customer_ratings():
+    ratings_count = {
+        "1 Star": 0,
+        "2 Stars": 0,
+        "3 Stars": 0,
+        "4 Stars": 0,
+        "5 Stars": 0,
+    }
+
+    # Fetch service requests with ratings
+    service_requests = Service_Request.query.with_entities(Service_Request.rating).all()
+
+    for request in service_requests:
+        rating = request.rating
+        if rating is not None and 1 <= rating <= 5:
+            ratings_count[f"{rating} Star" if rating == 1 else f"{rating} Stars"] += 1
+
+    return {
+        "labels": list(ratings_count.keys()),
+        "data": list(ratings_count.values()),
+    }
+
+
+def fetch_service_request_summary():
+    # Updated status categories with initial counts
+    status_count = {
+        "accepted": 0,
+        "Closed": 0,  # Adding Closed
+        "Rejected": 0,  # Adding Rejected
+    }
+
+    # Fetch the service_status values from the database
+    service_requests = Service_Request.query.with_entities(
+        Service_Request.service_status
+    ).all()
+
+    for request in service_requests:
+        status = (
+            request.service_status.strip().capitalize()
+        )  # Clean and standardize the status
+        if status in status_count:
+            status_count[status] += 1
+        # else:
+        #     print(f"Unknown status encountered: {status}")  # Log for debugging
+
+    return {
+        "labels": list(status_count.keys()),
+        "data": list(status_count.values()),
+    }
+
+
+def save_customer_pic(file):
+    # Get the filename and ensure it's secure
+    filename = secure_filename(file.filename)
+
+    # Get the full path where the file will be saved
+    upload_folder = current_app.config["CUSTOMER_PIC_FOLDER"]
+    file_path = os.path.join(upload_folder, filename)
+
+    # Ensure that the customer_pic directory exists
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
+    # Save the file
+    file.save(file_path)
+
+    return filename  # Return just the filename for storing in the database
+
+
+def save_professional_pic(file):
+    # Get the filename and ensure it's secure
+    filename = secure_filename(file.filename)
+
+    # Get the full path where the file will be saved
+    upload_folder = current_app.config["PROFESSIONAL_PIC_FOLDER"]
+    file_path = os.path.join(upload_folder, filename)
+
+    # Ensure that the professional_pic directory exists
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
+    # Save the file
+    file.save(file_path)
+
+    return filename  # Return just the filename for storing in the database
+
+
+def save_document(file):
+    # Get the filename and ensure it's secure
+    filename = secure_filename(file.filename)
+
+    # Get the full path where the file will be saved
+    upload_folder = current_app.config["UPLOAD_FOLDER"]
+    file_path = os.path.join(upload_folder, filename)
+
+    # Ensure that the uploads directory exists
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
+    # Save the file
+    file.save(file_path)
+
+    return filename  # Return just the filename for storing in the database
+
+
+def fetch_all_professional():
+    professionals = Service_Professional.query.all()
+    professional_list = {}
+    for professional in professionals:
+        professional_list[professional.id] = [
+            professional.name,
+            professional.experience,
+            professional.service_type,
+        ]
+    return professional_list
+
+
+def save_service_picture(file):
+    # Get the filename and ensure it's secure
+    filename = secure_filename(file.filename)
+
+    # Get the full path where the file will be saved
+    upload_folder = current_app.config["SERVICE_PIC_FOLDER"]
+    file_path = os.path.join(upload_folder, filename)
+
+    # Ensure that the professional_pic directory exists
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
+    # Save the file
+    file.save(file_path)
+
+    return filename  # Return just the filename for storing in the database
+
+
+def update_professional_rating(professional_id):
+    # Count the number of completed service requests for the professional
+    completed_requests_count = (
+        db.session.query(Service_Request)
+        .filter(
+            Service_Request.professional_id == professional_id,
+            Service_Request.service_status == "closed",
+            Service_Request.rating.isnot(
+                None
+            ),  # Only consider requests with customer ratings
+        )
+        .count()
+    )
+
+    # Calculate the average rating only if there are at least 7 completed service requests
+    if completed_requests_count >= 7:
+        average = (
+            db.session.query(func.avg(Service_Request.rating))
+            .filter(
+                Service_Request.professional_id == professional_id,
+                Service_Request.service_status == "closed",
+                Service_Request.rating.isnot(
+                    None
+                ),  # Only consider requests with customer ratings
+            )
+            .scalar()
+        )
+        average = round(average, 1) if average is not None else 0.0
+        # Update the professional's average rating in the database
+        professional = Service_Professional.query.get(professional_id)
+        if professional:
+            professional.average_rating = average
+            db.session.commit()
+
+    else:
+        # If less than 7 service requests, set the average rating to None
+        professional = Service_Professional.query.get(professional_id)
+        if professional:
+            professional.average_rating = None
+            db.session.commit()
+
+    return professional.average_rating  # Return the updated average rating
+
+
+def update_customer_rating(customer_id):
+    # Count the number of completed service requests for the customer
+    completed_requests_count = (
+        db.session.query(Service_Request)
+        .filter(
+            Service_Request.customer_id == customer_id,
+            Service_Request.service_status == "closed",
+            Service_Request.customer_rating.isnot(
+                None
+            ),  # Only consider requests with professional ratings
+        )
+        .count()
+    )
+
+    # Calculate the average rating only if there are at least 7 completed service requests
+    if completed_requests_count >= 7:
+        average = (
+            db.session.query(func.avg(Service_Request.customer_rating))
+            .filter(
+                Service_Request.customer_id == customer_id,
+                Service_Request.service_status == "closed",
+                Service_Request.customer_rating.isnot(
+                    None
+                ),  # Only consider requests with professional ratings
+            )
+            .scalar()
+        )
+        average = round(average, 1) if average is not None else 0.0
+        # Update the customer's average rating in the database
+        customer = Customer.query.get(customer_id)
+        if customer:
+            customer.average_rating = average
+            db.session.commit()
+
+    else:
+        # If less than 7 service requests, set the average rating to None
+        customer = Customer.query.get(customer_id)
+        if customer:
+            customer.average_rating = None
+            db.session.commit()
+
+    return customer.average_rating  # Return the updated average rating
