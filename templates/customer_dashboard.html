@@ -212,8 +212,8 @@
                                             </p>
                                             <div class="form-group">
                                                 <label for="serviceRating">Service Rating:(1 to 5)</label>
-                                                <input type="number" class="form-control" step="0.1" id="serviceRating"
-                                                    min="1" max="5" required>
+                                                <input type="number" class="form-control" id="serviceRating" min="1"
+                                                    max="5" required>
                                             </div>
                                             <div class="form-group">
                                                 <label for="serviceRemarks">Remarks:</label>
@@ -254,8 +254,8 @@
                                         const rating = parseFloat(document.getElementById('serviceRating').value); // Parse rating as float
                                         const remarks = document.getElementById('serviceRemarks').value;
                                         const requestId = document.getElementById('requestId').value;
-                                        if (isNaN(rating) || rating < 1 || rating > 5) {
-                                            alert("Please provide valid inputs: rating between 1 and 5, and remarks.");
+                                        if (isNaN(rating) || rating < 1 || rating > 5 || !Number.isInteger(Number(rating))) {
+                                            alert("Please provide valid inputs: rating between 1 and 5,and no decimal place and remarks.");
                                             return;
                                         }
                                         if (!remarks.trim()) {
