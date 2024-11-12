@@ -62,31 +62,32 @@
             <h2 style="text-decoration: underline;">Payment History</h2>
             <br>
             {% if payments %}
-            <table class="table table-bordered  table-hover table-custom ">
+            <table class="table table-bordered table-hover table-custom">
                 <thead class="table-dark-custom">
                     <tr>
                         <th>ID</th>
-                        <th>Professional Name </th>
-                        <th>Professional ID</th>
-                        <th>Amount</th>
+                        <th>Professional Name</th>
+                        <th>Service ID</th>
+                        <th>Amount</th> <!-- Display the actual amount paid by the customer -->
                         <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for payment, professional_name in payments %}
+                    {% for payment_detail in payments %}
                     <tr>
-                        <td>{{ payment.id }}</td>
-                        <td>{{ professional_name }}</td>
-                        <td>{{ payment.professional_id }}</td>
-                        <td>₹{{ payment.amount }}</td>
-                        <td>{{ payment.payment_status }}</td>
+                        <td>{{ payment_detail.payment.id }}</td>
+                        <td>{{ payment_detail.professional_name }}</td>
+                        <td>{{ payment_detail.service_id }}</td>
+                        <td>₹{{ payment_detail.paid_amount }}</td> <!-- Actual paid amount -->
+                        <td>{{ payment_detail.payment.payment_status }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
             {% else %}
-            <p> <b>No transactions available.</b></p>
+            <p><b>No transactions available.</b></p>
             {% endif %}
+
         </div>
     </div>
     <!-- Add Font Awesome CSS for icons -->

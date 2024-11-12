@@ -61,7 +61,7 @@
             <h2 style="text-decoration: underline;">Payment History</h2>
             <br>
             {% if payments %}
-            <table class="table table-bordered  table-hover table-custom ">
+            <table class="table table-bordered table-hover table-custom">
                 <thead class="table-dark-custom">
                     <tr>
                         <th>ID</th>
@@ -72,20 +72,21 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for payment, customer_name in payments %}
+                    {% for payment in payments %}
                     <tr>
-                        <td>{{ payment.id }}</td>
-                        <td>{{ customer_name }}</td>
-                        <td>{{ payment.customer_id }}</td>
-                        <td>₹{{ payment.amount }}</td>
+                        <td>{{ payment.payment.id }}</td>
+                        <td>{{ payment.customer_name }}</td>
+                        <td>{{ payment.payment.customer_id }}</td>
+                        <td>₹{{ payment.paid_amount }}</td> <!-- Always show the correct amount -->
                         <td>{{ payment.payment_status }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
             {% else %}
-            <p> <b>No transactions available.</b></p>
+            <p><b>No transactions available.</b></p>
             {% endif %}
+
         </div>
     </div>
     <!-- Add Font Awesome CSS for icons -->

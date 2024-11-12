@@ -492,7 +492,7 @@ def professional_dashboard():
 
         if professional:
             # Check the professional's verification and block status
-            if professional.verified_status is None:
+            if professional.verified_status == "Not verified yet":
                 message = "Your admin verification is under process."
             elif professional.verified_status == "approved":
                 service_requests = Service_Request.query.filter_by(
@@ -620,20 +620,35 @@ def search_customers():
 @app.route("/accept_service/<int:service_request_id>", methods=["POST"])
 def accept_service(service_request_id):
     service_request = Service_Request.query.get(service_request_id)
-
-    # Assuming this is how you get the professional id
     professional_id = session.get("professional_id")
 
     if service_request:
-        # Change status to accepted
         service_request.service_status = "accepted"
         db.session.commit()
 
-        # Mark payment as transferred
+        # Retrieve the payment record
         payment = Payment.query.filter_by(service_request_id=service_request_id).first()
         if payment:
-            payment.is_transferred = True  # Mark as transferred
-            payment.payment_status = "completed"  # Update payment status as needed
+            payment.is_transferred = True
+            payment.payment_status = "completed"
+
+            # Find the custom price for this service request if it exists
+            professional_service = ProfessionalService.query.filter_by(
+                professional_id=service_request.professional_id,
+                service_id=service_request.service_id,
+            ).first()
+
+            # Use custom price if set; otherwise, use base price
+            amount_to_transfer = (
+                professional_service.custom_price
+                if professional_service and professional_service.custom_price
+                else professional_service.service.base_price
+            )
+
+            # Update the payment record with the correct amount
+            payment.amount = (
+                amount_to_transfer  # Update the payment with the correct amount
+            )
 
             # Fetch or create the professional's wallet
             professional_wallet = ProfessionalWallet.query.filter_by(
@@ -641,16 +656,15 @@ def accept_service(service_request_id):
             ).first()
 
             if not professional_wallet:
-                # Create a new wallet entry if it doesn't exist
                 professional_wallet = ProfessionalWallet(
                     professional_id=service_request.professional_id, balance=0
                 )
                 db.session.add(professional_wallet)
 
-            # Transfer amount to professional
-            professional_wallet.balance += payment.amount
+            # Transfer the calculated amount to the professional's wallet
+            professional_wallet.balance += amount_to_transfer
+            db.session.commit()
 
-            db.session.commit()  # Commit all changes
             flash(
                 "Service request accepted and payment transferred to professional.",
                 "success",
@@ -661,58 +675,58 @@ def accept_service(service_request_id):
     return redirect(url_for("professional_dashboard"))
 
 
-@app.route("/reject_service/<int:service_request_id>", methods=["POST"])
-def reject_service(service_request_id):
-    service_request = Service_Request.query.get(service_request_id)
+@app.route("/reject_service/<int:service_id>", methods=["POST"])
+def reject_service(service_id):
+    service_request = Service_Request.query.get(service_id)
 
     if not service_request:
         flash("Service request not found.", "danger")
         return redirect(url_for("professional_dashboard"))
 
-    # Change the service request status to rejected
-    service_request.service_status = "rejected"
+    if service_request.service_status == "requested":
+        service_request.service_status = "rejected"
 
-    # Commit the change to the service request
-    db.session.commit()
+        # Fetch the related payment
+        payment = Payment.query.filter_by(service_request_id=service_id).first()
 
-    # Refund to the customer only if the payment has not been transferred
-    payment = Payment.query.filter_by(service_request_id=service_request_id).first()
+        if payment:
+            # Update payment status to "Refunded"
+            payment.payment_status = "Refunded"
 
-    if payment:
-        if (
-            not payment.is_transferred
-        ):  # Only refund if the payment hasn't been transferred
-            # Fetch the customer wallet
-            customer_wallet = Wallet.query.filter_by(
-                customer_id=payment.customer_id
+            # Calculate refund amount (custom price if available, else base price)
+            professional_service = ProfessionalService.query.filter_by(
+                professional_id=service_request.professional_id,
+                service_id=service_request.service_id,
             ).first()
 
-            if customer_wallet:
-                # Update the customer's wallet balance
-                customer_wallet.balance += (
-                    payment.amount
-                )  # Refund amount to customer wallet
-
-                # Commit wallet update
-                db.session.commit()
-                flash("Service request rejected. Amount refunded to customer.", "info")
-            else:
-                flash("Customer wallet not found. Unable to refund.", "warning")
-        else:
-            flash(
-                "Service request rejected, but payment was already transferred to the professional.",
-                "warning",
+            refund_amount = (
+                professional_service.custom_price
+                if professional_service and professional_service.custom_price
+                else professional_service.service.base_price
             )
 
-        # Update payment status regardless of whether the refund was processed
-        payment.payment_status = "refunded"  # Update payment status
-        db.session.commit()  # Commit payment status update
-        print("Service Request:", service_request)
-        print("Payment:", payment)
-        print("Customer Wallet:", customer_wallet)
+            # Update customer's wallet balance
+            wallet = Wallet.query.filter_by(
+                customer_id=service_request.customer_id
+            ).first()
+            if wallet:
+                wallet.balance += refund_amount
+            else:
+                # Create wallet if it doesn't exist
+                wallet = Wallet(
+                    customer_id=service_request.customer_id, balance=refund_amount
+                )
+                db.session.add(wallet)
 
+            # Update the payment amount to the refunded amount
+            payment.amount = (
+                refund_amount  # Update the payment amount to reflect the refund
+            )
+
+        db.session.commit()
+        flash("Service has been rejected and payment refunded.", "success")
     else:
-        flash("Payment record not found. No refund necessary.", "info")
+        flash("Service cannot be rejected at this stage.", "warning")
 
     return redirect(url_for("professional_dashboard"))
 
@@ -1085,12 +1099,31 @@ def professional_payments():
     professional_id = session.get(
         "professional_id"
     )  # Assuming professional_id is stored in session
+
+    if not professional_id:
+        flash("Professional not logged in!", "danger")
+        return redirect(url_for("login"))
+
     professional = Service_Professional.query.filter_by(id=professional_id).first()
 
-    # Fetch payments related to the professional and join with the Customer table to get the customer name
+    if not professional:
+        flash("Professional not found!", "danger")
+        return redirect(url_for("professional_dashboard"))
+
+    # Fetch payments related to the professional, joining with Customer and ProfessionalService to get customer name and custom price
     payments = (
-        db.session.query(Payment, Customer.name.label("customer_name"))
+        db.session.query(
+            Payment,
+            Customer.name.label("customer_name"),
+            ProfessionalService.custom_price,
+        )
         .join(Customer, Payment.customer_id == Customer.id)
+        .join(Service_Request, Payment.service_request_id == Service_Request.id)
+        .join(
+            ProfessionalService,
+            (ProfessionalService.professional_id == professional_id)
+            & (ProfessionalService.service_id == Service_Request.service_id),
+        )
         .filter(Payment.professional_id == professional_id)
         .all()
     )
@@ -1099,9 +1132,31 @@ def professional_payments():
     wallet = ProfessionalWallet.query.filter_by(professional_id=professional_id).first()
     wallet_balance = wallet.balance if wallet else 0.0
 
+    # Prepare payment details to pass to the template
+    payment_details = []
+    for row in payments:
+        payment = row[0]  # Payment object
+        customer_name = row[1]  # Customer name
+        custom_price = row[2]  # Custom price
+
+        # Determine the actual amount to show (payment amount or custom price if payment is missing)
+        paid_amount = (
+            payment.amount if payment.amount else (custom_price if custom_price else 0)
+        )
+
+        payment_details.append(
+            {
+                "payment": payment,
+                "customer_name": customer_name,
+                "paid_amount": paid_amount,  # Always show the paid amount or fallback to custom price if no payment was made
+                "payment_status": payment.payment_status,
+            }
+        )
+
+    # Render the template with the updated payment details
     return render_template(
         "professional_payments.html",
-        payments=payments,  # Pass payments with customer name
+        payments=payment_details,
         wallet_balance=wallet_balance,
         professional=professional,
     )
@@ -1616,26 +1671,67 @@ def customer_summary_api():
 
 @app.route("/customer_payments")
 def customer_payments():
-    customer_id = session.get(
-        "customer_id"
-    )  # Assuming customer_id is stored in the session
+    customer_id = session.get("customer_id")
+
+    if not customer_id:
+        flash("User not logged in!", "danger")
+        return redirect(url_for("login"))
+
     customer = Customer.query.filter_by(id=customer_id).first()
+
+    if not customer:
+        flash("Customer not found!", "danger")
+        return redirect(url_for("customer_dashboard"))
 
     # Fetch the payments related to the customer and join with the Service_Professional table to get the professional name
     payments = (
-        db.session.query(Payment, Service_Professional.name.label("professional_name"))
+        db.session.query(
+            Payment,
+            Service_Professional.name.label("professional_name"),
+            ProfessionalService.custom_price,
+            ProfessionalService.service_id,
+        )
         .join(Service_Professional, Payment.professional_id == Service_Professional.id)
+        .join(
+            ProfessionalService,
+            ProfessionalService.professional_id == Service_Professional.id,
+        )
         .filter(Payment.customer_id == customer_id)
         .all()
     )
 
-    # Get the wallet balance, defaulting to 0 if wallet doesn't exist
+    # Get wallet balance, defaulting to 0 if wallet does not exist
     wallet = Wallet.query.filter_by(customer_id=customer_id).first()
     wallet_balance = wallet.balance if wallet else 0.0
 
+    # Prepare payment details to pass to the template
+    payment_details = []
+    for row in payments:
+        payment = row[0]  # Payment object
+        professional_name = row[1]
+        custom_price = row[2]
+        service_id = row[3]
+
+        # Always show the actual amount paid
+        paid_amount = (
+            payment.amount if payment.amount else 0
+        )  # If payment exists, show the paid amount, else show 0.
+
+        # Append the payment details to the list
+        payment_details.append(
+            {
+                "payment": payment,
+                "professional_name": professional_name,
+                "paid_amount": paid_amount,  # This will now always show the actual amount paid.
+                "service_id": service_id,
+                "custom_price": custom_price,  # Optional for professional's reference.
+            }
+        )
+
+    # Render the template with the updated payment details
     return render_template(
         "customer_payments.html",
-        payments=payments,  # Pass payments with professional name
+        payments=payment_details,
         wallet_balance=wallet_balance,
         customer=customer,
     )
@@ -1741,10 +1837,47 @@ def cancel_service(service_id):
         flash("Service request not found.", "danger")
         return redirect(url_for("customer_dashboard"))
 
+    # Check if the service status allows cancellation
     if service_request.service_status == "requested":
+        # Update service request status
         service_request.service_status = "cancelled"
+
+        # Fetch the related payment
+        payment = Payment.query.filter_by(service_request_id=service_id).first()
+
+        if payment:
+            # Update payment status to "Cancelled"
+            payment.payment_status = "Cancelled"
+
+            # Calculate refund amount (custom price if available, else base price)
+            professional_service = ProfessionalService.query.filter_by(
+                professional_id=service_request.professional_id,
+                service_id=service_request.service_id,
+            ).first()
+
+            refund_amount = (
+                professional_service.custom_price
+                if professional_service and professional_service.custom_price
+                else payment.amount
+            )
+
+            # Update customer's wallet balance
+            wallet = Wallet.query.filter_by(
+                customer_id=service_request.customer_id
+            ).first()
+            if wallet:
+                wallet.balance += refund_amount
+            else:
+                # Create wallet if it doesn't exist
+                wallet = Wallet(
+                    customer_id=service_request.customer_id, balance=refund_amount
+                )
+                db.session.add(wallet)
+
         db.session.commit()
-        flash("Service has been successfully cancelled.", "success")
+        flash(
+            "Service has been successfully cancelled and payment refunded.", "success"
+        )
     else:
         flash("Service cannot be cancelled at this stage.", "warning")
 

@@ -507,7 +507,7 @@
                         <td>{{ customer.name }}</td>
                         <td>{{ customer.email }}</td>
                         <td>{{ customer.phone_no }}</td>
-                        <td>{% if customer.block_status %}
+                        <td>{% if customer.is_blocked %}
                             Blocked
                             {% else %}
                             Not Blocked
